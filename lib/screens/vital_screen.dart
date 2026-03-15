@@ -125,7 +125,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.15),
+                  color: Colors.red.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.redAccent),
                 ),
@@ -261,11 +261,11 @@ class _VitalCard extends StatelessWidget {
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isAlert ? Colors.redAccent : color.withOpacity(0.3),
+          color: isAlert ? Colors.redAccent : color.withValues(alpha: 0.3),
           width: isAlert ? 1.5 : 1,
         ),
         boxShadow: isAlert
-            ? [BoxShadow(color: Colors.red.withOpacity(0.2), blurRadius: 12)]
+            ? [BoxShadow(color: Colors.red.withValues(alpha: 0.2), blurRadius: 12)]
             : [],
       ),
       child: Row(
@@ -273,7 +273,7 @@ class _VitalCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 28),
@@ -302,7 +302,7 @@ class _VitalCard extends StatelessWidget {
                           style: TextStyle(
                               color: isAlert
                                   ? Colors.redAccent
-                                  : color.withOpacity(0.7),
+                                  : color.withValues(alpha: 0.7),
                               fontSize: 14)),
                     ),
                   ],
@@ -346,7 +346,7 @@ class _ChartCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,7 +400,7 @@ class _ChartCard extends StatelessWidget {
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: color.withOpacity(0.08),
+                      color: color.withValues(alpha: 0.08),
                     ),
                   ),
                 ],
