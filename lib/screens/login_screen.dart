@@ -1,6 +1,6 @@
 import 'package:first_app/screens/vital_screen.dart';
 import 'package:flutter/material.dart';
-import 'vital_screen.dart';
+
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -8,87 +8,98 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Container(
-          width: 350,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(16),
-          ),
+  body: Stack(
+    children: [
+
+      /// Background image
+      SizedBox.expand(
+        child: Image.asset(
+          "assets/images/login_bg2.jpg",
+          fit: BoxFit.cover,
+        ),
+      ),
+
+      /// Dark overlay
+      Container(
+        color: Colors.black.withValues(alpha: 0.5),
+      ),
+
+      /// Login UI
+      Center(
+        child: Padding(
+          padding: const EdgeInsets.all(30),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
 
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    "assets/images/logo.png",
+                    height: 40,
+                  ), //App logo
+                  const SizedBox(width: 12),
+                ],
+              ),
+
               const Text(
                 "Infant Vitals Monitor",
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
 
               const SizedBox(height: 30),
 
+              /// Email
               TextField(
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.email),
                   hintText: "Email",
                   filled: true,
-                  fillColor: const Color(0xFF0F172A),
+                  fillColor: const Color.fromARGB(0, 11, 0, 0).withValues(alpha: 0.9),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
+              /// Password
               TextField(
                 obscureText: true,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock),
                   hintText: "Password",
                   filled: true,
-                  fillColor: const Color(0xFF0F172A),
+                  fillColor: const Color.fromARGB(255, 0, 0, 0).withValues(alpha: 0.9),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 30),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const VitalsScreen(),
-                      ),
-                    );
-                  },
-                  child: const Text("Login"),
-                ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const VitalsScreen(),
+                    ),
+                  );
+                },
+                child: const Text("Login"),
               ),
-
-              const SizedBox(height: 12),
-
-              TextButton(
-                onPressed: () {},
-                child: const Text("Create an account"),
-              )
-
             ],
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 }
