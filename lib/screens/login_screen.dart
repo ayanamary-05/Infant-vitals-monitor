@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_app/screens/vital_screen.dart';
 
 // ─────────────────────────────────────────
-// LOGIN SCREEN
+// LOGIN SCREEN  (landing — shows LOGIN / SIGN UP buttons)
 // ─────────────────────────────────────────
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
-  /// Slide-up page route used to open SignUpScreen
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   Route _slideUpRoute(Widget page) {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 520),
       reverseTransitionDuration: const Duration(milliseconds: 420),
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0); // starts from bottom
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        const begin = Offset(0.0, 1.0);
         const end = Offset.zero;
         const curve = Curves.easeInOutQuart;
         final tween =
             Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
+        return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }
@@ -32,28 +35,19 @@ class LoginScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // ── Background image ──────────────────────
           SizedBox.expand(
             child: Image.asset(
               "assets/images/login_bg2.jpg",
               fit: BoxFit.cover,
             ),
           ),
-
-          // ── Dark overlay ──────────────────────────
-          Container(
-            color: Colors.black.withValues(alpha: 0.55),
-          ),
-
-          // ── Login UI ──────────────────────────────
+          Container(color: Colors.black.withValues(alpha: 0.55)),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 36),
               child: Column(
                 children: [
                   const Spacer(flex: 3),
-
-                  // Logo + App name
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -88,38 +82,27 @@ class LoginScreen extends StatelessWidget {
                       letterSpacing: 0.3,
                     ),
                   ),
-
                   const Spacer(flex: 3),
-
-                  // ── LOGIN button (green / primary) ──
                   _PillButton(
                     label: "LOGIN",
-                    backgroundColor: const Color(0xFF1DB954), // Spotify green
+                    backgroundColor: const Color(0xFF1DB954),
                     foregroundColor: Colors.white,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        _slideUpRoute(const LoginFormScreen()),
-                      );
-                    },
+                    onPressed: () => Navigator.push(
+                      context,
+                      _slideUpRoute(const LoginFormScreen()),
+                    ),
                   ),
-
                   const SizedBox(height: 16),
-
-                  // ── SIGN UP button (dark / secondary) ──
                   _PillButton(
                     label: "SIGN UP",
                     backgroundColor: Colors.white.withValues(alpha: 0.12),
                     foregroundColor: Colors.white,
                     borderColor: Colors.white38,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        _slideUpRoute(const SignUpScreen()),
-                      );
-                    },
+                    onPressed: () => Navigator.push(
+                      context,
+                      _slideUpRoute(const SignUpScreen()),
+                    ),
                   ),
-
                   const SizedBox(height: 48),
                 ],
               ),
@@ -132,7 +115,7 @@ class LoginScreen extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────
-// SIGN UP SCREEN  (slides up from bottom)
+// SIGN UP SCREEN
 // ─────────────────────────────────────────
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -151,6 +134,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _passwordObscured = true;
   bool _confirmPasswordObscured = true;
   String? _passwordError;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -170,10 +154,99 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _passwordError = null;
         return;
       }
-      _passwordError = password == confirmPassword
-          ? null
-          : "Passwords do not match";
+      _passwordError =
+          password == confirmPassword ? null : "Passwords do not match";
     });
+  }
+
+  String _authErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        return 'An account already exists for that email.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'operation-not-allowed':
+        return 'Email/password accounts are not enabled.';
+      case 'weak-password':
+        return 'Password must be at least 6 characters.';
+      default:
+        return e.message ?? 'An unexpected error occurred.';
+    }
+  }
+
+  Future<void> _createAccount() async {
+    _validatePasswords();
+    if (_passwordError != null) return;
+
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty || password.isEmpty) {
+      _showSnackBar('Please fill in all fields.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final credential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      await credential.user?.updateDisplayName('$firstName $lastName');
+      await credential.user?.sendEmailVerification();
+
+      if (!mounted) return;
+
+      _showSnackBar('Account created! Please verify your email.', isError: false);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const VitalsScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      _showSnackBar(_authErrorMessage(e));
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            isError ? const Color(0xFFCF6679) : const Color(0xFF1DB954),
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Route _slideUpRoute(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 520),
+      reverseTransitionDuration: const Duration(milliseconds: 420),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOutQuart;
+        final tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
   }
 
   @override
@@ -181,20 +254,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // ── Background image ──────────────────────
           SizedBox.expand(
-            child: Image.asset(
-              "assets/images/signup_bg.jpg",
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset("assets/images/signup_bg.jpg", fit: BoxFit.cover),
           ),
-
-          // ── Darker overlay for sign-up ────────────
-          Container(
-            color: Colors.black.withValues(alpha: 0.68),
-          ),
-
-          // ── Sign-up UI ────────────────────────────
+          Container(color: Colors.black.withValues(alpha: 0.68)),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
@@ -210,188 +273,142 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Title
-                        const Text(
-                          "SIGN UP",
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          "Because every beat counts.",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white60,
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-
-                        const SizedBox(height: 36),
-
-                        // ── First name field ──────────────
-                        _GlassTextField(
-                          hintText: "first name",
-                          controller: _firstNameController,
-                          keyboardType: TextInputType.name,
-                          textCapitalization: TextCapitalization.words,
-                          textInputAction: TextInputAction.next,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ── Last name field ───────────────
-                        _GlassTextField(
-                          hintText: "last name",
-                          controller: _lastNameController,
-                          keyboardType: TextInputType.name,
-                          textCapitalization: TextCapitalization.words,
-                          textInputAction: TextInputAction.next,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ── Email field ───────────────────
-                        _GlassTextField(
-                          hintText: "email address",
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ── Password field ────────────────
-                        _GlassTextField(
-                          hintText: "password",
-                          controller: _passwordController,
-                          obscureText: _passwordObscured,
-                          textInputAction: TextInputAction.next,
-                          onChanged: (_) => _validatePasswords(),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _passwordObscured
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Colors.white70,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "SIGN UP",
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 1.5,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _passwordObscured = !_passwordObscured;
-                              });
-                            },
                           ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // ── Confirm password field ─────────
-                        _GlassTextField(
-                          hintText: "confirm password",
-                          controller: _confirmPasswordController,
-                          obscureText: _confirmPasswordObscured,
-                          textInputAction: TextInputAction.done,
-                          errorText: _passwordError,
-                          onChanged: (_) => _validatePasswords(),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _confirmPasswordObscured
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: Colors.white70,
+                          const SizedBox(height: 6),
+                          const Text(
+                            "Because every beat counts.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _confirmPasswordObscured =
-                                    !_confirmPasswordObscured;
-                              });
-                            },
                           ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // ── CREATE ACCOUNT button ─────────
-                        _PillButton(
-                          label: "CREATE ACCOUNT",
-                          backgroundColor: const Color(0xFF1DB954),
-                          foregroundColor: Colors.white,
-                          onPressed: () {
-                            _validatePasswords();
-                            if (_passwordError != null) {
-                              return;
-                            }
-                            // TODO: handle account creation
-                          },
-                          width: 230,
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          children: [
-                            const Text(
-                              "Already have an account? ",
-                              style: TextStyle(
+                          const SizedBox(height: 36),
+                          _GlassTextField(
+                            hintText: "first name",
+                            controller: _firstNameController,
+                            keyboardType: TextInputType.name,
+                            textCapitalization: TextCapitalization.words,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 16),
+                          _GlassTextField(
+                            hintText: "last name",
+                            controller: _lastNameController,
+                            keyboardType: TextInputType.name,
+                            textCapitalization: TextCapitalization.words,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 16),
+                          _GlassTextField(
+                            hintText: "email address",
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 16),
+                          _GlassTextField(
+                            hintText: "password",
+                            controller: _passwordController,
+                            obscureText: _passwordObscured,
+                            textInputAction: TextInputAction.next,
+                            onChanged: (_) => _validatePasswords(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _passwordObscured
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                                 color: Colors.white70,
                               ),
+                              onPressed: () => setState(
+                                  () => _passwordObscured = !_passwordObscured),
                             ),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pushReplacement(
+                          ),
+                          const SizedBox(height: 16),
+                          _GlassTextField(
+                            hintText: "confirm password",
+                            controller: _confirmPasswordController,
+                            obscureText: _confirmPasswordObscured,
+                            textInputAction: TextInputAction.done,
+                            errorText: _passwordError,
+                            onChanged: (_) => _validatePasswords(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _confirmPasswordObscured
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.white70,
+                              ),
+                              onPressed: () => setState(() =>
+                                  _confirmPasswordObscured =
+                                      !_confirmPasswordObscured),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          _PillButton(
+                            label: _isLoading ? "CREATING..." : "CREATE ACCOUNT",
+                            backgroundColor: const Color(0xFF1DB954),
+                            foregroundColor: Colors.white,
+                            onPressed: _isLoading ? () {} : _createAccount,
+                            width: 230,
+                          ),
+                          const SizedBox(height: 14),
+                          Wrap(
+                            alignment: WrapAlignment.center,
+                            children: [
+                              const Text(
+                                "Already have an account? ",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                              GestureDetector(
+                                onTap: () => Navigator.pushReplacement(
                                   context,
-                                  PageRouteBuilder(
-                                    transitionDuration:
-                                        const Duration(milliseconds: 520),
-                                    reverseTransitionDuration:
-                                        const Duration(milliseconds: 420),
-                                    pageBuilder: (context, animation,
-                                            secondaryAnimation) =>
-                                        const LoginFormScreen(),
-                                    transitionsBuilder: (context, animation,
-                                        secondaryAnimation, child) {
-                                      const begin = Offset(0.0, 1.0);
-                                      const end = Offset.zero;
-                                      const curve = Curves.easeInOutQuart;
-                                      final tween = Tween(
-                                              begin: begin, end: end)
-                                          .chain(CurveTween(curve: curve));
-                                      return SlideTransition(
-                                        position: animation.drive(tween),
-                                        child: child,
-                                      );
-                                    },
+                                  _slideUpRoute(const LoginFormScreen()),
+                                ),
+                                child: const Text(
+                                  "Login",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontStyle: FontStyle.italic,
+                                    decoration: TextDecoration.underline,
+                                    decorationStyle: TextDecorationStyle.dotted,
                                   ),
-                                );
-                              },
-                              child: const Text(
-                                "Login",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontStyle: FontStyle.italic,
-                                  decoration: TextDecoration.underline,
-                                  decorationStyle: TextDecorationStyle.dotted,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withValues(alpha: 0.35),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Color(0xFF1DB954)),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -401,8 +418,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 // ─────────────────────────────────────────
 // SHARED WIDGETS
 // ─────────────────────────────────────────
-
-/// Rounded pill-shaped button used on both screens
 class _PillButton extends StatelessWidget {
   final String label;
   final Color backgroundColor;
@@ -451,7 +466,6 @@ class _PillButton extends StatelessWidget {
   }
 }
 
-/// Semi-transparent text field used on the sign-up screen
 class _GlassTextField extends StatelessWidget {
   final String hintText;
   final bool obscureText;
@@ -501,7 +515,8 @@ class _GlassTextField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+          borderSide:
+              BorderSide(color: Colors.white.withValues(alpha: 0.15)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -513,7 +528,7 @@ class _GlassTextField extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────
-// LOGIN FORM SCREEN  (slides up from bottom)
+// LOGIN FORM SCREEN
 // ─────────────────────────────────────────
 class LoginFormScreen extends StatefulWidget {
   const LoginFormScreen({super.key});
@@ -526,6 +541,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
+  bool _isLoading = false;
+  bool _passwordObscured = true;
 
   @override
   void dispose() {
@@ -534,25 +551,118 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     super.dispose();
   }
 
+  String _authErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+        return 'No account found for that email.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later.';
+      case 'invalid-credential':
+        return 'Invalid email or password.';
+      default:
+        return e.message ?? 'An unexpected error occurred.';
+    }
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showSnackBar('Please enter your email and password.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Save the remember me preference so AuthWrapper reads it on next cold open
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('remember_me', _rememberMe);
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const VitalsScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      _showSnackBar(_authErrorMessage(e));
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _sendPasswordReset() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showSnackBar('Enter your email address above first.');
+      return;
+    }
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      _showSnackBar('Reset link sent — check your inbox.', isError: false);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      _showSnackBar(_authErrorMessage(e));
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            isError ? const Color(0xFFCF6679) : const Color(0xFF1DB954),
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  Route _slideUpRoute(Widget page) {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 520),
+      reverseTransitionDuration: const Duration(milliseconds: 420),
+      pageBuilder: (_, __, ___) => page,
+      transitionsBuilder: (_, animation, __, child) {
+        const begin = Offset(0.0, 1.0);
+        const end = Offset.zero;
+        const curve = Curves.easeInOutQuart;
+        final tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // ── Background image ──────────────────────
           SizedBox.expand(
-            child: Image.asset(
-              "assets/images/login_bg3.jpg",
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset("assets/images/login_bg3.jpg", fit: BoxFit.cover),
           ),
-
-          // ── Dark overlay ──────────────────────────
-          Container(
-            color: Colors.black.withValues(alpha: 0.68),
-          ),
-
-          // ── Login UI ──────────────────────────────
+          Container(color: Colors.black.withValues(alpha: 0.68)),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
@@ -591,29 +701,31 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                             fontStyle: FontStyle.italic,
                           ),
                         ),
-
                         const SizedBox(height: 36),
-
-                        // ── Email field ───────────────────
                         _GlassTextField(
                           hintText: "email address",
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
                         ),
-
                         const SizedBox(height: 16),
-
-                        // ── Password field ────────────────
                         _GlassTextField(
                           hintText: "password",
                           controller: _passwordController,
-                          obscureText: true,
+                          obscureText: _passwordObscured,
                           textInputAction: TextInputAction.done,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _passwordObscured
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white70,
+                            ),
+                            onPressed: () => setState(
+                                () => _passwordObscured = !_passwordObscured),
+                          ),
                         ),
-
                         const SizedBox(height: 10),
-
                         Row(
                           children: [
                             SizedBox(
@@ -621,15 +733,12 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                               width: 24,
                               child: Checkbox(
                                 value: _rememberMe,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _rememberMe = value ?? false;
-                                  });
-                                },
+                                onChanged: (value) => setState(
+                                    () => _rememberMe = value ?? false),
                                 checkColor: Colors.black,
-                                fillColor: MaterialStateProperty.resolveWith(
+                                fillColor: WidgetStateProperty.resolveWith(
                                   (states) {
-                                    if (states.contains(MaterialState.selected)) {
+                                    if (states.contains(WidgetState.selected)) {
                                       return const Color(0xFF1DB954);
                                     }
                                     return Colors.white24;
@@ -642,15 +751,11 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                             const Text(
                               "Remember me",
                               style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                              ),
+                                  color: Colors.white70, fontSize: 12),
                             ),
                             const Spacer(),
                             GestureDetector(
-                              onTap: () {
-                                // TODO: handle forgot password
-                              },
+                              onTap: _sendPasswordReset,
                               child: const Text(
                                 "Forgot password?",
                                 style: TextStyle(
@@ -663,64 +768,27 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 32),
-
-                        // ── LOGIN button ─────────────────
                         _PillButton(
-                          label: "LOGIN",
+                          label: _isLoading ? "LOGGING IN..." : "LOGIN",
                           backgroundColor: const Color(0xFF1DB954),
                           foregroundColor: Colors.white,
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const VitalsScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _isLoading ? () {} : _login,
                           width: 230,
                         ),
-
                         const SizedBox(height: 14),
-
                         Wrap(
                           alignment: WrapAlignment.center,
                           children: [
                             const Text(
                               "Don't have an account? ",
-                              style: TextStyle(
-                                color: Colors.white70,
-                              ),
+                              style: TextStyle(color: Colors.white70),
                             ),
                             GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  PageRouteBuilder(
-                                    transitionDuration:
-                                        const Duration(milliseconds: 520),
-                                    reverseTransitionDuration:
-                                        const Duration(milliseconds: 420),
-                                    pageBuilder: (context, animation,
-                                            secondaryAnimation) =>
-                                        const SignUpScreen(),
-                                    transitionsBuilder: (context, animation,
-                                        secondaryAnimation, child) {
-                                      const begin = Offset(0.0, 1.0);
-                                      const end = Offset.zero;
-                                      const curve = Curves.easeInOutQuart;
-                                      final tween = Tween(
-                                              begin: begin, end: end)
-                                          .chain(CurveTween(curve: curve));
-                                      return SlideTransition(
-                                        position: animation.drive(tween),
-                                        child: child,
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
+                              onTap: () => Navigator.push(
+                                context,
+                                _slideUpRoute(const SignUpScreen()),
+                              ),
                               child: const Text(
                                 "Sign up",
                                 style: TextStyle(
@@ -740,6 +808,16 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
               ),
             ),
           ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withValues(alpha: 0.35),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Color(0xFF1DB954)),
+                ),
+              ),
+            ),
         ],
       ),
     );
