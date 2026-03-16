@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/vital_screen.dart';
+import 'screens/auth_wrapper.dart'; // ← changed from login_screen.dart
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
           surface: Color(0xFF1E293B),
         ),
       ),
-      home: const VitalsScreen(),
+      home: const AuthWrapper(), // ← changed from LoginScreen()
     );
   }
 }
