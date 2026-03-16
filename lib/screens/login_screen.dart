@@ -10,13 +10,13 @@ class LoginScreen extends StatelessWidget {
   /// Slide-up page route used to open SignUpScreen
   Route _slideUpRoute(Widget page) {
     return PageRouteBuilder(
-      transitionDuration: const Duration(milliseconds: 450),
-      reverseTransitionDuration: const Duration(milliseconds: 380),
+      transitionDuration: const Duration(milliseconds: 520),
+      reverseTransitionDuration: const Duration(milliseconds: 420),
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(0.0, 1.0); // starts from bottom
         const end = Offset.zero;
-        const curve = Curves.easeInOutCubic;
+        const curve = Curves.easeInOutQuart;
         final tween =
             Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
         return SlideTransition(
@@ -226,9 +226,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         const SizedBox(height: 6),
                         const Text(
-                          "Monitor your infant's vitals with ease.",
+                          "Because every beat counts.",
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white60, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
 
                         const SizedBox(height: 36),
@@ -346,6 +350,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 Navigator.pushReplacement(
                                   context,
                                   PageRouteBuilder(
+                                    transitionDuration:
+                                        const Duration(milliseconds: 520),
+                                    reverseTransitionDuration:
+                                        const Duration(milliseconds: 420),
                                     pageBuilder: (context, animation,
                                             secondaryAnimation) =>
                                         const LoginFormScreen(),
@@ -353,7 +361,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                         secondaryAnimation, child) {
                                       const begin = Offset(0.0, 1.0);
                                       const end = Offset.zero;
-                                      const curve = Curves.easeInOutCubic;
+                                      const curve = Curves.easeInOutQuart;
                                       final tween = Tween(
                                               begin: begin, end: end)
                                           .chain(CurveTween(curve: curve));
@@ -517,6 +525,7 @@ class LoginFormScreen extends StatefulWidget {
 class _LoginFormScreenState extends State<LoginFormScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _rememberMe = false;
 
   @override
   void dispose() {
@@ -603,6 +612,58 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           textInputAction: TextInputAction.done,
                         ),
 
+                        const SizedBox(height: 10),
+
+                        Row(
+                          children: [
+                            SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: Checkbox(
+                                value: _rememberMe,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _rememberMe = value ?? false;
+                                  });
+                                },
+                                checkColor: Colors.black,
+                                fillColor: MaterialStateProperty.resolveWith(
+                                  (states) {
+                                    if (states.contains(MaterialState.selected)) {
+                                      return const Color(0xFF1DB954);
+                                    }
+                                    return Colors.white24;
+                                  },
+                                ),
+                                side: const BorderSide(color: Colors.white54),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              "Remember me",
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () {
+                                // TODO: handle forgot password
+                              },
+                              child: const Text(
+                                "Forgot password?",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  decoration: TextDecoration.underline,
+                                  decorationStyle: TextDecorationStyle.dotted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
                         const SizedBox(height: 32),
 
                         // ── LOGIN button ─────────────────
@@ -637,6 +698,10 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                 Navigator.push(
                                   context,
                                   PageRouteBuilder(
+                                    transitionDuration:
+                                        const Duration(milliseconds: 520),
+                                    reverseTransitionDuration:
+                                        const Duration(milliseconds: 420),
                                     pageBuilder: (context, animation,
                                             secondaryAnimation) =>
                                         const SignUpScreen(),
@@ -644,7 +709,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                         secondaryAnimation, child) {
                                       const begin = Offset(0.0, 1.0);
                                       const end = Offset.zero;
-                                      const curve = Curves.easeInOutCubic;
+                                      const curve = Curves.easeInOutQuart;
                                       final tween = Tween(
                                               begin: begin, end: end)
                                           .chain(CurveTween(curve: curve));
