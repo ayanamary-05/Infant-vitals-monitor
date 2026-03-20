@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_app/screens/vital_screen.dart';
+import 'package:first_app/screens/home_screen.dart';
 
 // ─────────────────────────────────────────
 // LOGIN SCREEN  (landing — shows LOGIN / SIGN UP buttons)
@@ -82,15 +83,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       letterSpacing: 0.3,
                     ),
                   ),
-                  const Spacer(flex: 3),
+                  const Spacer(),
                   _PillButton(
                     label: "LOGIN",
                     backgroundColor: const Color(0xFF1DB954),
                     foregroundColor: Colors.white,
-                    onPressed: () => Navigator.push(
-                      context,
-                      _slideUpRoute(const LoginFormScreen()),
-                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => HomeScreen()),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   _PillButton(
