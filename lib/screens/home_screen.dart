@@ -5,8 +5,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:first_app/screens/vital_models.dart';
 import 'package:first_app/screens/vital_screen.dart';
 import 'package:first_app/screens/vitals_history_screen.dart';
+import 'package:first_app/screens/history_screen.dart';
 import 'package:first_app/screens/spike_history_screen.dart';
-import 'package:first_app/screens/details_screen.dart';
 import 'package:first_app/screens/settings_screen.dart';
 import 'package:first_app/screens/profile_screen.dart';
 
@@ -34,9 +34,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _tabs = const [
     _DashboardTab(),
-    DetailsScreen(),
-    SettingsScreen(),
+    HistoryScreen(),
+    SpikeHistoryScreen(),
     ProfileScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -448,7 +449,7 @@ class _VitalCard extends StatelessWidget {
     final isWaiting = vital.current == 0;
     return GestureDetector(
       onTap: () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const VitalScreen())),
+          MaterialPageRoute(builder: (_) => const VitalsScreen())),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -647,10 +648,11 @@ class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.current, required this.onTap});
 
   static const _items = [
-    (Icons.home_rounded,      Icons.home_outlined,      'Home'),
-    (Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Details'),
-    (Icons.settings_rounded,  Icons.settings_outlined,  'Settings'),
-    (Icons.person_rounded,    Icons.person_outlined,    'Profile'),
+    (Icons.grid_view_rounded,         Icons.grid_view_outlined,          'Dashboard'),
+    (Icons.access_time_rounded,        Icons.access_time_outlined,        'History'),
+    (Icons.notifications_rounded,      Icons.notifications_outlined,      'Alerts'),
+    (Icons.person_rounded,             Icons.person_outlined,             'Profile'),
+    (Icons.settings_rounded,           Icons.settings_outlined,           'Settings'),
   ];
 
   @override
