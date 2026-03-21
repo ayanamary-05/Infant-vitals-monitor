@@ -649,7 +649,7 @@ class _BottomNav extends StatelessWidget {
 
   static const _items = [
     (Icons.grid_view_rounded,         Icons.grid_view_outlined,          'Dashboard'),
-    (Icons.bar_chart_rounded,          Icons.bar_chart_outlined,          'History'),
+    (Icons.access_time_rounded,        Icons.access_time_outlined,        'History'),
     (Icons.notifications_rounded,      Icons.notifications_outlined,      'Alerts'),
     (Icons.person_rounded,             Icons.person_outlined,             'Profile'),
     (Icons.settings_rounded,           Icons.settings_outlined,           'Settings'),
