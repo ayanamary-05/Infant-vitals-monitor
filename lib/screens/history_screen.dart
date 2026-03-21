@@ -4,12 +4,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 // ── Palette ────────────────────────────────────────────────────────────────
-const Color _bg      = Color(0xFFF4F7FB);
-const Color _surface = Color(0xFFFFFFFF);
-const Color _primary = Color(0xFF3B82F6);
-const Color _textMain = Color(0xFF1E293B);
+const Color _bg       = Color(0xFF0F172A);
+const Color _surface  = Color(0xFF1E293B);
+const Color _primary  = Color(0xFF4F8EF7);
+const Color _textMain = Color(0xFFF1F5F9);
 const Color _textSub  = Color(0xFF94A3B8);
-const Color _border   = Color(0xFFE2E8F0);
+const Color _border   = Color(0xFF334155);
 
 // ── Vital tab definition ────────────────────────────────────────────────────
 class _VitalTab {
@@ -56,6 +56,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedTab = 0;
   List<FlSpot> _spots = [];
   bool _loading = true;
+  int? _touchedIndex;
 
   @override
   void initState() {
@@ -158,7 +159,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 border: Border.all(color: _border),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withValues(alpha: 0.25),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -217,13 +218,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       lineTouchData: LineTouchData(
         enabled: true,
         touchTooltipData: LineTouchTooltipData(
-          getTooltipColor: (_) => Colors.white,
+          getTooltipColor: (_) => const Color(0xFF1E293B),
           tooltipBorder: BorderSide(color: _border),
           tooltipRoundedRadius: 10,
           getTooltipItems: (spots) => spots.map((s) {
-            final h = s.x.toInt();
-            final timeLabel = '${h == 0 ? 12 : (h > 12 ? h - 12 : h)}:00'
-                '${h < 12 ? ' AM' : ' PM'}';
+            final idx = s.x.toInt();
+            final now = DateTime.now();
+            final startHour = (now.hour - 23 + 24) % 24;
+            final hour = (startHour + idx) % 24;
+            final timeLabel = '$hour:00';
             return LineTooltipItem(
               '$timeLabel\n',
               const TextStyle(color: _textSub, fontSize: 11),
@@ -260,7 +263,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         drawVerticalLine: false,
         horizontalInterval: (tab.maxY - tab.minY) / 4,
         getDrawingHorizontalLine: (_) =>
-            const FlLine(color: Color(0xFFE2E8F0), strokeWidth: 0.8),
+            const FlLine(color: Color(0xFF334155), strokeWidth: 0.8),
       ),
       borderData: FlBorderData(show: false),
       titlesData: FlTitlesData(
@@ -279,14 +282,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 28,
-            interval: 4,
+            interval: 3,
             getTitlesWidget: (val, _) {
-              final h = val.toInt();
-              if (h % 4 != 0) return const SizedBox.shrink();
+              final idx = val.toInt();
+              if (idx % 3 != 0) return const SizedBox.shrink();
+              // Map index 0..23 to real clock hours starting 1 hour ago
+              final now = DateTime.now();
+              final startHour = (now.hour - 23 + 24) % 24;
+              final hour = (startHour + idx) % 24;
               return Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '${h == 0 ? 0 : h}:00',
+                  '$hour:00',
                   style: const TextStyle(color: _textSub, fontSize: 10),
                 ),
               );
@@ -405,7 +412,7 @@ class _StatCard extends StatelessWidget {
           border: Border.all(color: _border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
