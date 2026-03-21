@@ -482,14 +482,30 @@ class MonitoringSummaryGrid extends StatelessWidget {
       ),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.35,
-      children: items.map((s) => SummaryCard(data: s)).toList(),
+    return Column(
+      children: [
+        SizedBox(
+          height: 80,
+          child: Row(
+            children: [
+              Expanded(child: SummaryCard(data: items[0])),
+              const SizedBox(width: 10),
+              Expanded(child: SummaryCard(data: items[1])),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 80,
+          child: Row(
+            children: [
+              Expanded(child: SummaryCard(data: items[2])),
+              const SizedBox(width: 10),
+              Expanded(child: SummaryCard(data: items[3])),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -521,7 +537,7 @@ class SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       decoration: BoxDecoration(
         color: context.bgCard,
         borderRadius: BorderRadius.circular(14),
@@ -538,43 +554,28 @@ class SummaryCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon with themed tinted background
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-              color: data.iconColor.withOpacity(
-                Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.1,
-              ),
-              borderRadius: BorderRadius.circular(10),
+          Text(
+            data.title,
+            style: TextStyle(
+              fontSize: 11,
+              color: context.textSub,
+              fontWeight: FontWeight.w500,
             ),
-            child: Icon(data.icon, color: data.iconColor, size: 20),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                data.title,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: context.textSub,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                data.value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: context.textMain,
-                ),
-              ),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            data.value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: context.textMain,
+              height: 1.0,
+            ),
           ),
         ],
       ),
     );
   }
-}
+}
