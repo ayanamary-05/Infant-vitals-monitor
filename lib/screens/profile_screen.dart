@@ -1,28 +1,5 @@
 import 'package:flutter/material.dart';
 
-
-// ─────────────────────────────────────────────
-//  Static sample data
-// ─────────────────────────────────────────────
-
-// Infant
-const _infantName      = 'Baby Sarah';
-const _infantGender    = 'Female';
-const _infantAge       = '3 months';
-const _infantWeight    = '4.2 kg';
-const _infantDob       = 'December 13, 2025';
-const _infantBloodType = 'O+';
-const _infantAllergies = 'None known';
-const _infantNotes     = 'Healthy, regular checkups on schedule';
-
-// Caregiver
-const _caregiverName      = 'Jane Doe';
-const _caregiverRole      = 'Mother';
-const _caregiverEmail     = 'jane.doe@email.com';
-const _caregiverPhone     = '+254 712 345 678';
-const _caregiverAddress   = 'Nairobi, Kenya';
-const _caregiverEmergency = 'John Doe · +254 713 456 789';
-
 // ─────────────────────────────────────────────
 //  Accent colours (not theme-able — intentional
 //  brand / vital-sign colours)
@@ -33,7 +10,6 @@ const _roseColor = Color(0xFFFF6B8A);
 
 // ─────────────────────────────────────────────
 //  Theme-aware colour helpers
-//  (call inside build methods that have context)
 // ─────────────────────────────────────────────
 extension _AppTheme on BuildContext {
   ColorScheme get cs     => Theme.of(this).colorScheme;
@@ -47,10 +23,101 @@ extension _AppTheme on BuildContext {
 }
 
 // ─────────────────────────────────────────────
-//  ProfileScreen
+//  ProfileScreen  (StatefulWidget so fields
+//  are mutable when the user saves edits)
 // ─────────────────────────────────────────────
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  // ── Infant fields ──────────────────────────
+  String infantName      = 'Baby Sarah';
+  String infantGender    = 'Female';
+  String infantAge       = '3 months';
+  String infantWeight    = '4.2 kg';
+  String infantDob       = 'December 13, 2025';
+  String infantBloodType = 'O+';
+  String infantAllergies = 'None known';
+  String infantNotes     = 'Healthy, regular checkups on schedule';
+
+  // ── Caregiver fields ───────────────────────
+  String caregiverName      = 'Jane Doe';
+  String caregiverRole      = 'Mother';
+  String caregiverEmail     = 'jane.doe@email.com';
+  String caregiverPhone     = '+254 712 345 678';
+  String caregiverAddress   = 'Nairobi, Kenya';
+  String caregiverEmergency = 'John Doe · +254 713 456 789';
+
+  // ── Open Infant edit sheet ─────────────────
+  void _editInfant() {
+    final fields = [
+      _FieldDef(label: 'Name',         icon: Icons.badge_outlined,          initial: infantName),
+      _FieldDef(label: 'Gender',       icon: Icons.wc_outlined,             initial: infantGender),
+      _FieldDef(label: 'Age',          icon: Icons.cake_outlined,           initial: infantAge),
+      _FieldDef(label: 'Weight',       icon: Icons.monitor_weight_outlined, initial: infantWeight),
+      _FieldDef(label: 'Date of Birth',icon: Icons.calendar_today_outlined, initial: infantDob),
+      _FieldDef(label: 'Blood Type',   icon: Icons.bloodtype_outlined,      initial: infantBloodType),
+      _FieldDef(label: 'Allergies',    icon: Icons.favorite_border_rounded, initial: infantAllergies),
+      _FieldDef(label: 'Medical Notes',icon: Icons.note_alt_outlined,       initial: infantNotes,
+                maxLines: 3),
+    ];
+
+    _openEditSheet(
+      context: context,
+      title: 'Edit Infant Profile',
+      accentColor: context.primary,
+      avatarIcon: Icons.child_care_rounded,
+      fields: fields,
+      onSave: (values) {
+        setState(() {
+          infantName      = values[0];
+          infantGender    = values[1];
+          infantAge       = values[2];
+          infantWeight    = values[3];
+          infantDob       = values[4];
+          infantBloodType = values[5];
+          infantAllergies = values[6];
+          infantNotes     = values[7];
+        });
+      },
+    );
+  }
+
+  // ── Open Caregiver edit sheet ──────────────
+  void _editCaregiver() {
+    final fields = [
+      _FieldDef(label: 'Name',             icon: Icons.badge_outlined,           initial: caregiverName),
+      _FieldDef(label: 'Relationship',     icon: Icons.person_outline_rounded,   initial: caregiverRole),
+      _FieldDef(label: 'Email',            icon: Icons.email_outlined,            initial: caregiverEmail,
+                keyboardType: TextInputType.emailAddress),
+      _FieldDef(label: 'Phone',            icon: Icons.phone_outlined,            initial: caregiverPhone,
+                keyboardType: TextInputType.phone),
+      _FieldDef(label: 'Address',          icon: Icons.location_on_outlined,      initial: caregiverAddress),
+      _FieldDef(label: 'Emergency Contact',icon: Icons.emergency_outlined,        initial: caregiverEmergency),
+    ];
+
+    _openEditSheet(
+      context: context,
+      title: 'Edit Caregiver Profile',
+      accentColor: _teal,
+      avatarIcon: Icons.person_rounded,
+      fields: fields,
+      onSave: (values) {
+        setState(() {
+          caregiverName      = values[0];
+          caregiverRole      = values[1];
+          caregiverEmail     = values[2];
+          caregiverPhone     = values[3];
+          caregiverAddress   = values[4];
+          caregiverEmergency = values[5];
+        });
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +141,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             Text(
-              'Baby Sarah · Caregiver info',
+              '$infantName · Caregiver info',
               style: TextStyle(color: context.textSub, fontSize: 11),
             ),
           ],
@@ -98,15 +165,16 @@ class ProfileScreen extends StatelessWidget {
               sectionIconColor: context.primary,
               avatarIcon: Icons.child_care_rounded,
               avatarIconColor: context.primary,
-              name: _infantName,
-              subtitle: '$_infantGender · $_infantAge · $_infantWeight',
+              name: infantName,
+              subtitle: '$infantGender · $infantAge · $infantWeight',
               showOnlineDot: true,
-              details: const [
-                _DetailData(icon: Icons.calendar_today_outlined, label: 'Date of Birth', value: _infantDob),
-                _DetailData(icon: Icons.monitor_weight_outlined,  label: 'Weight',        value: _infantWeight),
-                _DetailData(icon: Icons.bloodtype_outlined,        label: 'Blood Type',    value: _infantBloodType),
-                _DetailData(icon: Icons.favorite_border_rounded,   label: 'Allergies',     value: _infantAllergies),
-                _DetailData(icon: Icons.note_alt_outlined,         label: 'Medical Notes', value: _infantNotes),
+              onEdit: _editInfant,
+              details: [
+                _DetailData(icon: Icons.calendar_today_outlined, label: 'Date of Birth', value: infantDob),
+                _DetailData(icon: Icons.monitor_weight_outlined,  label: 'Weight',        value: infantWeight),
+                _DetailData(icon: Icons.bloodtype_outlined,        label: 'Blood Type',    value: infantBloodType),
+                _DetailData(icon: Icons.favorite_border_rounded,   label: 'Allergies',     value: infantAllergies),
+                _DetailData(icon: Icons.note_alt_outlined,         label: 'Medical Notes', value: infantNotes),
               ],
             ),
 
@@ -120,16 +188,17 @@ class ProfileScreen extends StatelessWidget {
               sectionIconColor: _teal,
               avatarIcon: Icons.person_rounded,
               avatarIconColor: _teal,
-              name: _caregiverName,
-              subtitle: _caregiverRole,
+              name: caregiverName,
+              subtitle: caregiverRole,
               subtitleIsChip: true,
               chipColor: _teal,
-              details: const [
-                _DetailData(icon: Icons.person_outline_rounded, label: 'Relationship',      value: _caregiverRole),
-                _DetailData(icon: Icons.email_outlined,          label: 'Email',             value: _caregiverEmail),
-                _DetailData(icon: Icons.phone_outlined,           label: 'Phone',             value: _caregiverPhone),
-                _DetailData(icon: Icons.location_on_outlined,     label: 'Address',           value: _caregiverAddress),
-                _DetailData(icon: Icons.emergency_outlined,       label: 'Emergency Contact', value: _caregiverEmergency),
+              onEdit: _editCaregiver,
+              details: [
+                _DetailData(icon: Icons.person_outline_rounded, label: 'Relationship',      value: caregiverRole),
+                _DetailData(icon: Icons.email_outlined,          label: 'Email',             value: caregiverEmail),
+                _DetailData(icon: Icons.phone_outlined,           label: 'Phone',             value: caregiverPhone),
+                _DetailData(icon: Icons.location_on_outlined,     label: 'Address',           value: caregiverAddress),
+                _DetailData(icon: Icons.emergency_outlined,       label: 'Emergency Contact', value: caregiverEmergency),
               ],
             ),
 
@@ -147,6 +216,286 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Edit sheet launcher  (shared by both cards)
+// ─────────────────────────────────────────────
+class _FieldDef {
+  final String label;
+  final IconData icon;
+  final String initial;
+  final int maxLines;
+  final TextInputType keyboardType;
+
+  const _FieldDef({
+    required this.label,
+    required this.icon,
+    required this.initial,
+    this.maxLines = 1,
+    this.keyboardType = TextInputType.text,
+  });
+}
+
+void _openEditSheet({
+  required BuildContext context,
+  required String title,
+  required Color accentColor,
+  required IconData avatarIcon,
+  required List<_FieldDef> fields,
+  required void Function(List<String> values) onSave,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _EditBottomSheet(
+      title: title,
+      accentColor: accentColor,
+      avatarIcon: avatarIcon,
+      fields: fields,
+      onSave: onSave,
+    ),
+  );
+}
+
+// ─────────────────────────────────────────────
+//  Edit Bottom Sheet widget
+// ─────────────────────────────────────────────
+class _EditBottomSheet extends StatefulWidget {
+  final String title;
+  final Color accentColor;
+  final IconData avatarIcon;
+  final List<_FieldDef> fields;
+  final void Function(List<String> values) onSave;
+
+  const _EditBottomSheet({
+    required this.title,
+    required this.accentColor,
+    required this.avatarIcon,
+    required this.fields,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditBottomSheet> createState() => _EditBottomSheetState();
+}
+
+class _EditBottomSheetState extends State<_EditBottomSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final List<TextEditingController> _controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = widget.fields
+        .map((f) => TextEditingController(text: f.initial))
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    for (final c in _controllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _save() {
+    if (_formKey.currentState!.validate()) {
+      widget.onSave(_controllers.map((c) => c.text.trim()).toList());
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Profile updated successfully'),
+          backgroundColor: widget.accentColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final Color accent = widget.accentColor;
+
+    return Container(
+      margin: EdgeInsets.only(top: mq.padding.top + 24),
+      decoration: BoxDecoration(
+        color: context.bgPage,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── drag handle ─────────────────────
+          const SizedBox(height: 12),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: context.dividerColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── header row ──────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: accent.withOpacity(0.15),
+                  child: Icon(widget.avatarIcon, size: 20, color: accent),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: context.textMain,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(Icons.close_rounded, color: context.textSub),
+                ),
+              ],
+            ),
+          ),
+
+          Divider(color: context.dividerColor, height: 24),
+
+          // ── scrollable form fields ───────────
+          Flexible(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 20, right: 20,
+                bottom: mq.viewInsets.bottom + 16,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    for (int i = 0; i < widget.fields.length; i++) ...[
+                      _buildField(
+                        context: context,
+                        fieldDef: widget.fields[i],
+                        controller: _controllers[i],
+                        accent: accent,
+                      ),
+                      if (i < widget.fields.length - 1)
+                        const SizedBox(height: 16),
+                    ],
+                    const SizedBox(height: 28),
+
+                    // ── Save button ─────────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: _save,
+                        icon: const Icon(Icons.check_rounded, size: 18),
+                        label: const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accent,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // ── Cancel button ───────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          foregroundColor: context.textSub,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildField({
+    required BuildContext context,
+    required _FieldDef fieldDef,
+    required TextEditingController controller,
+    required Color accent,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: fieldDef.maxLines,
+      keyboardType: fieldDef.keyboardType,
+      style: TextStyle(
+        fontSize: 14,
+        color: context.textMain,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        labelText: fieldDef.label,
+        labelStyle: TextStyle(fontSize: 13, color: context.textSub),
+        prefixIcon: Icon(fieldDef.icon, size: 18, color: accent),
+        filled: true,
+        fillColor: context.bgCard,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: context.dividerColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: accent, width: 1.8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _alertRed),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _alertRed, width: 1.8),
+        ),
+      ),
+      validator: (v) {
+        if (v == null || v.trim().isEmpty) {
+          return '${fieldDef.label} cannot be empty';
+        }
+        return null;
+      },
     );
   }
 }
@@ -184,7 +533,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-//  Detail data model  (plain data class)
+//  Detail data model
 // ─────────────────────────────────────────────
 class _DetailData {
   final IconData icon;
@@ -198,8 +547,7 @@ class _DetailData {
 }
 
 // ─────────────────────────────────────────────
-//  Generic _ProfileCard  — used for BOTH infant
-//  and caregiver, eliminating duplication
+//  Generic _ProfileCard
 // ─────────────────────────────────────────────
 class _ProfileCard extends StatelessWidget {
   final IconData  sectionIcon;
@@ -208,10 +556,11 @@ class _ProfileCard extends StatelessWidget {
   final Color     avatarIconColor;
   final String    name;
   final String    subtitle;
-  final bool      subtitleIsChip;   // true → render as pill badge
+  final bool      subtitleIsChip;
   final Color?    chipColor;
   final bool      showOnlineDot;
   final List<_DetailData> details;
+  final VoidCallback onEdit;
 
   const _ProfileCard({
     required this.sectionIcon,
@@ -221,6 +570,7 @@ class _ProfileCard extends StatelessWidget {
     required this.name,
     required this.subtitle,
     required this.details,
+    required this.onEdit,
     this.subtitleIsChip = false,
     this.chipColor,
     this.showOnlineDot = false,
@@ -267,7 +617,7 @@ class _ProfileCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                _EditButton(accentColor: sectionIconColor),
+                _EditButton(accentColor: sectionIconColor, onPressed: onEdit),
               ],
             ),
           ),
@@ -345,7 +695,7 @@ class _ProfileCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-//  Chip label  (used for caregiver role badge)
+//  Chip label
 // ─────────────────────────────────────────────
 class _ChipLabel extends StatelessWidget {
   final String label;
@@ -420,17 +770,17 @@ class _DetailRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-//  Edit button  (accent colour passed in so
-//  it matches the card it belongs to)
+//  Edit button  (now wired to onPressed)
 // ─────────────────────────────────────────────
 class _EditButton extends StatelessWidget {
   final Color accentColor;
-  const _EditButton({required this.accentColor});
+  final VoidCallback onPressed;
+  const _EditButton({required this.accentColor, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
-      onPressed: () {},
+      onPressed: onPressed,
       icon: const Icon(Icons.edit_outlined, size: 14),
       label: const Text('Edit'),
       style: TextButton.styleFrom(
@@ -578,4 +928,4 @@ class SummaryCard extends StatelessWidget {
       ),
     );
   }
-}
+}

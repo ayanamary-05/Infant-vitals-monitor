@@ -3,6 +3,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/auth_wrapper.dart';
 
+// ─────────────────────────────────────────────
+//  Global theme-mode notifier
+//  Settings screen reads/writes this directly.
+// ─────────────────────────────────────────────
+final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -16,70 +22,73 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Infant Vitals Monitor',
-      debugShowCheckedModeBanner: false,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (_, mode, __) => MaterialApp(
+        title: 'Infant Vitals Monitor',
+        debugShowCheckedModeBanner: false,
+        themeMode: mode,
 
-      // ── Light theme ──────────────────────────
-      theme: ThemeData(
-        brightness: Brightness.light,
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
+        // ── Light theme ──────────────────────────
+        theme: ThemeData(
           brightness: Brightness.light,
-          surface: Colors.white,
-          onSurface: Colors.black87,
-          onSurfaceVariant: Colors.black54,
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6366F1),
+            brightness: Brightness.light,
+            surface: Colors.white,
+            onSurface: Colors.black87,
+            onSurfaceVariant: Colors.black54,
+          ),
+          scaffoldBackgroundColor: const Color(0xFFF1F5F9),
+          dividerColor: const Color(0xFFE2E8F0),
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: Colors.black87),
+            bodySmall: TextStyle(color: Colors.black54),
+          ),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black87,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+          ),
+          cardTheme: const CardThemeData(
+            color: Colors.white,
+            elevation: 0,
+          ),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF1F5F9),
-        dividerColor: const Color(0xFFE2E8F0),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.black87),
-          bodySmall: TextStyle(color: Colors.black54),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-        ),
-        cardTheme: const CardThemeData(
-          color: Colors.white,
-          elevation: 0,
-        ),
-      ),
 
-      // ── Dark theme ───────────────────────────
-      darkTheme: ThemeData(
-        brightness: Brightness.dark,
-        useMaterial3: true,
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF6366F1),
-          surface: Color(0xFF1E293B),
-          onSurface: Color(0xFFF1F5F9),
-          onSurfaceVariant: Color(0xFF94A3B8),
-          surfaceContainerHighest: Color(0xFF334155),
+        // ── Dark theme ───────────────────────────
+        darkTheme: ThemeData(
+          brightness: Brightness.dark,
+          useMaterial3: true,
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFF6366F1),
+            surface: Color(0xFF1E293B),
+            onSurface: Color(0xFFF1F5F9),
+            onSurfaceVariant: Color(0xFF94A3B8),
+            surfaceContainerHighest: Color(0xFF334155),
+          ),
+          scaffoldBackgroundColor: const Color(0xFF0F172A),
+          dividerColor: const Color(0xFF334155),
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: Color(0xFFF1F5F9)),
+            bodySmall: TextStyle(color: Color(0xFF94A3B8)),
+          ),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF1E293B),
+            foregroundColor: Color(0xFFF1F5F9),
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+          ),
+          cardTheme: const CardThemeData(
+            color: Color(0xFF1E293B),
+            elevation: 0,
+          ),
         ),
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        dividerColor: const Color(0xFF334155),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Color(0xFFF1F5F9)),
-          bodySmall: TextStyle(color: Color(0xFF94A3B8)),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1E293B),
-          foregroundColor: Color(0xFFF1F5F9),
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-        ),
-        cardTheme: const CardThemeData(
-          color: Color(0xFF1E293B),
-          elevation: 0,
-        ),
-      ),
 
-      themeMode: ThemeMode.system,
-      home: const AuthWrapper(),
+        home: const AuthWrapper(),
+      ),
     );
   }
 }
