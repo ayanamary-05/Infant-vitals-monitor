@@ -31,11 +31,7 @@ class SpikeHistoryScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: _bg,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded,
-              color: Colors.white, size: 18),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         title: const Text('Spike Alerts',
             style: TextStyle(
                 color: Colors.white,
