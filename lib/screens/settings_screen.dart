@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:first_app/main.dart' show themeModeNotifier;
+import 'package:first_app/main.dart' show themeModeNotifier, languageNotifier, kSupportedLocales;
 import 'package:first_app/screens/login_screen.dart';
 
 // ─────────────────────────────────────────────
@@ -48,6 +48,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _tempUnit      = 'Celsius';
   String _language      = 'English';
   String _refreshRate   = '3 seconds';
+
+  // ── Temperature unit helpers ─────────────
+  bool get _isFahrenheit => _tempUnit == 'Fahrenheit';
+
+  // Convert a Celsius value → display value (may be converted to °F)
+  double _toDisplay(double celsius) =>
+      _isFahrenheit ? celsius * 9 / 5 + 32 : celsius;
+
+  // Convert display value back → Celsius for storage
+  double _toCelsius(double display) =>
+      _isFahrenheit ? (display - 32) * 5 / 9 : display;
+
+  // Clamp range helpers in display space
+  (double, double) _displayRange((double, double) celsiusRange) => (
+    double.parse(_toDisplay(celsiusRange.$1).toStringAsFixed(1)),
+    double.parse(_toDisplay(celsiusRange.$2).toStringAsFixed(1)),
+  );
 
   bool get _isDarkMode => themeModeNotifier.value == ThemeMode.dark;
 
@@ -126,12 +143,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             label: 'Temperature',
             icon: Icons.thermostat_rounded,
             iconColor: _orange,
-            minLabel: 'Min (°C)', maxLabel: 'Max (°C)',
-            minValue: _tempMin, maxValue: _tempMax,
-            minRange: (35.0, 37.0), maxRange: (37.1, 41.0),
+            minLabel: _isFahrenheit ? 'Min (°F)' : 'Min (°C)',
+            maxLabel: _isFahrenheit ? 'Max (°F)' : 'Max (°C)',
+            minValue: _toDisplay(_tempMin),
+            maxValue: _toDisplay(_tempMax),
+            minRange: _displayRange((35.0, 37.0)),
+            maxRange: _displayRange((37.1, 41.0)),
             decimals: 1,
-            onMinChanged: (v) => setState(() => _tempMin = v),
-            onMaxChanged: (v) => setState(() => _tempMax = v),
+            onMinChanged: (v) => setState(() => _tempMin = _toCelsius(v)),
+            onMaxChanged: (v) => setState(() => _tempMax = _toCelsius(v)),
           ),
           const SizedBox(height: 12),
 
@@ -203,8 +223,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.language_outlined,
                 label: 'Language',
                 value: _language,
-                options: const ['English', 'Swahili', 'French'],
-                onChanged: (v) => setState(() => _language = v),
+                options: kSupportedLocales.keys.toList(),
+                onChanged: (v) {
+                  setState(() => _language = v);
+                  // Apply locale immediately app-wide
+                  final locale = kSupportedLocales[v];
+                  if (locale != null) languageNotifier.value = locale;
+                },
               ),
               Divider(color: context.dividerClr, height: 1, indent: 48),
               _SelectTile(
