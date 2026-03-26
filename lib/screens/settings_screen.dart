@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:first_app/main.dart' show themeModeNotifier, languageNotifier, kSupportedLocales;
+import 'package:first_app/main.dart'
+    show themeModeNotifier, languageNotifier,
+         tempUnitNotifier, refreshRateNotifier;
 import 'package:first_app/screens/login_screen.dart';
+import 'package:first_app/screens/app_strings.dart';
 
 // ─────────────────────────────────────────────
 //  Theme-aware colour helpers
 // ─────────────────────────────────────────────
 extension _AppTheme on BuildContext {
-  ColorScheme get cs      => Theme.of(this).colorScheme;
-  Color get bgPage        => Theme.of(this).scaffoldBackgroundColor;
-  Color get bgCard        => cs.surface;
-  Color get textMain      => Theme.of(this).textTheme.bodyLarge?.color ?? cs.onSurface;
-  Color get textSub       => Theme.of(this).textTheme.bodySmall?.color ?? cs.onSurfaceVariant;
-  Color get dividerClr    => Theme.of(this).dividerColor;
-  Color get primary       => cs.primary;
-  bool  get isDark        => Theme.of(this).brightness == Brightness.dark;
+  ColorScheme get cs   => Theme.of(this).colorScheme;
+  Color get bgPage     => Theme.of(this).scaffoldBackgroundColor;
+  Color get bgCard     => cs.surface;
+  Color get textMain   => Theme.of(this).textTheme.bodyLarge?.color ?? cs.onSurface;
+  Color get textSub    => Theme.of(this).textTheme.bodySmall?.color ?? cs.onSurfaceVariant;
+  Color get dividerClr => Theme.of(this).dividerColor;
+  Color get primary    => cs.primary;
+  bool  get isDark     => Theme.of(this).brightness == Brightness.dark;
 }
 
-const _green   = Color(0xFF1DB954);
-const _red     = Color(0xFFFF6B6B);
-const _orange  = Color(0xFFFFAB40);
-const _blue    = Color(0xFF4F8EF7);
-const _purple  = Color(0xFFA78BFA);
+const _green  = Color(0xFF1DB954);
+const _red    = Color(0xFFFF6B6B);
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -36,42 +36,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundAlerts       = true;
   bool _vibration         = true;
 
-  // ── Alert threshold ranges ────────────────
-  double _hrMin   = 100;
-  double _hrMax   = 160;
-  double _tempMin = 36.5;
-  double _tempMax = 38.0;
-  double _spo2Min = 94;
-  double _spo2Max = 100;
-
-  // ── Preferences ──────────────────────────
-  String _tempUnit      = 'Celsius';
-  String _language      = 'English';
+  // ── Preferences (mirror global notifiers) ─
+  String _tempUnit      = tempUnitNotifier.value;
   String _refreshRate   = '3 seconds';
-
-  // ── Temperature unit helpers ─────────────
-  bool get _isFahrenheit => _tempUnit == 'Fahrenheit';
-
-  // Convert a Celsius value → display value (may be converted to °F)
-  double _toDisplay(double celsius) =>
-      _isFahrenheit ? celsius * 9 / 5 + 32 : celsius;
-
-  // Convert display value back → Celsius for storage
-  double _toCelsius(double display) =>
-      _isFahrenheit ? (display - 32) * 5 / 9 : display;
-
-  // Clamp range helpers in display space
-  (double, double) _displayRange((double, double) celsiusRange) => (
-    double.parse(_toDisplay(celsiusRange.$1).toStringAsFixed(1)),
-    double.parse(_toDisplay(celsiusRange.$2).toStringAsFixed(1)),
-  );
+  bool   _batterySaver  = false;
+  bool   _cloudBackup   = false;
 
   bool get _isDarkMode => themeModeNotifier.value == ThemeMode.dark;
 
-  void _toggleDarkMode(bool v) {
+  @override
+  void initState() {
+    super.initState();
+    _loadFromPrefs();
+    languageNotifier.addListener(_rebuild);
+  }
+
+  void _rebuild() { if (mounted) setState(() {}); }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      themeModeNotifier.value = v ? ThemeMode.dark : ThemeMode.light;
+      _pushNotifications = prefs.getBool('s_pushNotif')    ?? _pushNotifications;
+      _soundAlerts       = prefs.getBool('s_soundAlerts')  ?? _soundAlerts;
+      _vibration         = prefs.getBool('s_vibration')    ?? _vibration;
+      _tempUnit          = prefs.getString('s_tempUnit')   ?? _tempUnit;
+      _refreshRate       = prefs.getString('s_refreshRate') ?? _refreshRate;
+      _batterySaver      = prefs.getBool('s_batterySaver') ?? _batterySaver;
+      _cloudBackup       = prefs.getBool('s_cloudBackup')  ?? _cloudBackup;
     });
+    if (_batterySaver) refreshRateNotifier.value = 30;
+
+    // Apply loaded preferences globally
+    tempUnitNotifier.value = _tempUnit;
+    refreshRateNotifier.value = _refreshRateToSeconds(_refreshRate);
+    themeModeNotifier.value =
+        (prefs.getBool('s_darkMode') ?? true) ? ThemeMode.dark : ThemeMode.light;
+  }
+
+  Future<void> _saveToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('s_pushNotif',    _pushNotifications);
+    await prefs.setBool('s_soundAlerts',  _soundAlerts);
+    await prefs.setBool('s_vibration',    _vibration);
+    await prefs.setString('s_tempUnit',   _tempUnit);
+    await prefs.setString('s_refreshRate', _refreshRate);
+    await prefs.setBool('s_darkMode',     _isDarkMode);
+    await prefs.setBool('s_batterySaver', _batterySaver);
+    await prefs.setBool('s_cloudBackup',  _cloudBackup);
+  }
+
+  int _refreshRateToSeconds(String label) {
+    return switch (label) {
+      '1 second'   => 1,
+      '5 seconds'  => 5,
+      '10 seconds' => 10,
+      _            => 3,
+    };
+  }
+
+  void _showToast(String msg) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        backgroundColor: context.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _toggleDarkMode(bool v) {
+    setState(() => themeModeNotifier.value = v ? ThemeMode.dark : ThemeMode.light);
+    _saveToPrefs();
+    _showToast('Settings saved');
+  }
+
+  @override
+  void dispose() {
+    languageNotifier.removeListener(_rebuild);
+    super.dispose();
   }
 
   Future<void> _logout() async {
@@ -80,9 +126,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await FirebaseAuth.instance.signOut();
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (_) => false);
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
   }
 
   @override
@@ -98,19 +145,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Settings',
-              style: TextStyle(
-                color: context.textMain,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.3,
-              ),
-            ),
-            Text(
-              'Alerts · Preferences · About',
-              style: TextStyle(color: context.textSub, fontSize: 11),
-            ),
+            Text(AppStrings.t('settings'),
+                style: TextStyle(
+                    color: context.textMain, fontSize: 18, fontWeight: FontWeight.w700)),
+            Text(AppStrings.t('preferences_notif'),
+                style: TextStyle(color: context.textSub, fontSize: 11)),
           ],
         ),
         bottom: PreferredSize(
@@ -123,129 +162,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
         physics: const BouncingScrollPhysics(),
         children: [
 
-          // ── Alert Thresholds ─────────────────
-          _SectionHeader(label: 'Alert Thresholds', icon: Icons.notifications_active_outlined),
-          const SizedBox(height: 12),
-
-          _ThresholdCard(
-            label: 'Heart Rate',
-            icon: Icons.favorite_rounded,
-            iconColor: _red,
-            minLabel: 'Min (BPM)', maxLabel: 'Max (BPM)',
-            minValue: _hrMin, maxValue: _hrMax,
-            minRange: (60, 120), maxRange: (130, 220),
-            onMinChanged: (v) => setState(() => _hrMin = v),
-            onMaxChanged: (v) => setState(() => _hrMax = v),
-          ),
-          const SizedBox(height: 12),
-
-          _ThresholdCard(
-            label: 'Temperature',
-            icon: Icons.thermostat_rounded,
-            iconColor: _orange,
-            minLabel: _isFahrenheit ? 'Min (°F)' : 'Min (°C)',
-            maxLabel: _isFahrenheit ? 'Max (°F)' : 'Max (°C)',
-            minValue: _toDisplay(_tempMin),
-            maxValue: _toDisplay(_tempMax),
-            minRange: _displayRange((35.0, 37.0)),
-            maxRange: _displayRange((37.1, 41.0)),
-            decimals: 1,
-            onMinChanged: (v) => setState(() => _tempMin = _toCelsius(v)),
-            onMaxChanged: (v) => setState(() => _tempMax = _toCelsius(v)),
-          ),
-          const SizedBox(height: 12),
-
-          _ThresholdCard(
-            label: 'SpO2',
-            icon: Icons.air_rounded,
-            iconColor: _blue,
-            minLabel: 'Min (%)', maxLabel: 'Max (%)',
-            minValue: _spo2Min, maxValue: _spo2Max,
-            minRange: (80, 95), maxRange: (96, 100),
-            onMinChanged: (v) => setState(() => _spo2Min = v),
-            onMaxChanged: (v) => setState(() => _spo2Max = v),
-          ),
-
-          const SizedBox(height: 28),
-
           // ── Notifications ────────────────────
-          _SectionHeader(label: 'Notifications', icon: Icons.notifications_outlined),
+          _SectionHeader(label: AppStrings.t('notifications'), icon: Icons.notifications_outlined),
           const SizedBox(height: 12),
-          _SettingsCard(
-            children: [
-              _ToggleTile(
-                icon: Icons.notifications_outlined,
-                label: 'Push Notifications',
-                value: _pushNotifications,
-                onChanged: (v) => setState(() => _pushNotifications = v),
-              ),
-              Divider(color: context.dividerClr, height: 1, indent: 48),
-              _ToggleTile(
-                icon: Icons.volume_up_outlined,
-                label: 'Sound Alerts',
-                value: _soundAlerts,
-                onChanged: (v) => setState(() => _soundAlerts = v),
-              ),
-              Divider(color: context.dividerClr, height: 1, indent: 48),
-              _ToggleTile(
-                icon: Icons.vibration_outlined,
-                label: 'Vibration',
-                value: _vibration,
-                onChanged: (v) => setState(() => _vibration = v),
-              ),
-            ],
-          ),
+          _SettingsCard(children: [
+            _ToggleTile(
+              icon: Icons.notifications_outlined,
+              label: AppStrings.t('push_notifications'),
+              value: _pushNotifications,
+              onChanged: (v) {
+                setState(() => _pushNotifications = v);
+                _saveToPrefs();
+                _showToast(AppStrings.t('settings_saved'));
+              },
+            ),
+            Divider(color: context.dividerClr, height: 1, indent: 48),
+            _ToggleTile(
+              icon: Icons.volume_up_outlined,
+              label: AppStrings.t('sound_alerts'),
+              value: _soundAlerts,
+              onChanged: (v) {
+                setState(() => _soundAlerts = v);
+                _saveToPrefs();
+                _showToast(AppStrings.t('settings_saved'));
+              },
+            ),
+            Divider(color: context.dividerClr, height: 1, indent: 48),
+            _ToggleTile(
+              icon: Icons.vibration_outlined,
+              label: AppStrings.t('vibration'),
+              value: _vibration,
+              onChanged: (v) {
+                setState(() => _vibration = v);
+                _saveToPrefs();
+                _showToast(AppStrings.t('settings_saved'));
+              },
+            ),
+          ]),
 
           const SizedBox(height: 28),
 
           // ── Preferences ──────────────────────
-          _SectionHeader(label: 'Preferences', icon: Icons.tune_outlined),
+          _SectionHeader(label: AppStrings.t('preferences'), icon: Icons.tune_outlined),
           const SizedBox(height: 12),
-          _SettingsCard(
-            children: [
-              _ToggleTile(
-                icon: Icons.dark_mode_outlined,
-                label: 'Dark Mode',
-                value: _isDarkMode,
-                onChanged: _toggleDarkMode,
-                activeColor: context.primary,
-              ),
-              Divider(color: context.dividerClr, height: 1, indent: 48),
-              _SelectTile(
-                icon: Icons.thermostat_outlined,
-                label: 'Temperature Unit',
-                value: _tempUnit,
-                options: const ['Celsius', 'Fahrenheit'],
-                onChanged: (v) => setState(() => _tempUnit = v),
-              ),
-              Divider(color: context.dividerClr, height: 1, indent: 48),
-              _SelectTile(
-                icon: Icons.language_outlined,
-                label: 'Language',
-                value: _language,
-                options: kSupportedLocales.keys.toList(),
-                onChanged: (v) {
-                  setState(() => _language = v);
-                  // Apply locale immediately app-wide
-                  final locale = kSupportedLocales[v];
-                  if (locale != null) languageNotifier.value = locale;
-                },
-              ),
-              Divider(color: context.dividerClr, height: 1, indent: 48),
-              _SelectTile(
-                icon: Icons.timer_outlined,
-                label: 'Data Refresh Rate',
-                value: _refreshRate,
-                options: const ['1 second', '3 seconds', '5 seconds', '10 seconds'],
-                onChanged: (v) => setState(() => _refreshRate = v),
-              ),
-            ],
-          ),
+          _SettingsCard(children: [
+            // Dark Mode
+            _ToggleTile(
+              icon: Icons.dark_mode_outlined,
+              label: AppStrings.t('dark_mode'),
+              value: _isDarkMode,
+              onChanged: _toggleDarkMode,
+              activeColor: context.primary,
+            ),
+            Divider(color: context.dividerClr, height: 1, indent: 48),
+
+            // Temperature Unit
+            _SelectTile(
+              icon: Icons.thermostat_outlined,
+              label: AppStrings.t('temperature_unit'),
+              value: _tempUnit,
+              options: const ['Celsius', 'Fahrenheit'],
+              onChanged: (v) {
+                setState(() => _tempUnit = v);
+                tempUnitNotifier.value = v;
+                _saveToPrefs();
+                _showToast(AppStrings.t('settings_saved'));
+              },
+            ),
+            Divider(color: context.dividerClr, height: 1, indent: 48),
+
+            // Data Refresh Rate
+            _SelectTile(
+              icon: Icons.timer_outlined,
+              label: AppStrings.t('data_refresh_rate'),
+              value: _refreshRate,
+              options: const ['1 second', '3 seconds', '5 seconds', '10 seconds'],
+              onChanged: (v) {
+                setState(() {
+                  _refreshRate = v;
+                  // Disable battery saver if a specific rate is chosen
+                  _batterySaver = false;
+                });
+                refreshRateNotifier.value = _refreshRateToSeconds(v);
+                _saveToPrefs();
+                _showToast(AppStrings.t('settings_saved'));
+              },
+            ),
+            Divider(color: context.dividerClr, height: 1, indent: 48),
+
+            // Battery Saver Mode
+            _ToggleTile(
+              icon: Icons.battery_saver_outlined,
+              label: AppStrings.t('battery_saver'),
+              subtitle: AppStrings.t('battery_saver_sub'),
+              value: _batterySaver,
+              onChanged: (v) {
+                setState(() => _batterySaver = v);
+                if (v) {
+                  refreshRateNotifier.value = 30;
+                } else {
+                  refreshRateNotifier.value = _refreshRateToSeconds(_refreshRate);
+                }
+                _saveToPrefs();
+                _showToast(AppStrings.t('settings_saved'));
+              },
+            ),
+            Divider(color: context.dividerClr, height: 1, indent: 48),
+
+            // Cloud Backup
+            _ToggleTile(
+              icon: Icons.cloud_upload_outlined,
+              label: AppStrings.t('cloud_backup'),
+              subtitle: AppStrings.t('cloud_backup_sub'),
+              value: _cloudBackup,
+              onChanged: (v) {
+                setState(() => _cloudBackup = v);
+                _saveToPrefs();
+                _showToast(v ? AppStrings.t('cloud_enabled') : AppStrings.t('cloud_disabled'));
+              },
+            ),
+          ]),
 
           const SizedBox(height: 28),
 
           // ── About ─────────────────────────────
-          _SectionHeader(label: 'About', icon: Icons.info_outlined),
+          _SectionHeader(label: AppStrings.t('about'), icon: Icons.info_outlined),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
@@ -255,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               border: Border.all(color: context.dividerClr),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(context.isDark ? 0.25 : 0.05),
+                  color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.05),
                   blurRadius: 8, offset: const Offset(0, 3),
                 ),
               ],
@@ -263,30 +304,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'IoT Infant Vitals Monitor',
-                  style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700,
-                    color: context.textMain,
-                  ),
-                ),
+                Text(AppStrings.t('app_name'),
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w700,
+                        color: context.textMain)),
                 const SizedBox(height: 4),
-                Text(
-                  'Version 1.0.0',
-                  style: TextStyle(fontSize: 12, color: context.textSub),
-                ),
+                Text(AppStrings.t('version'),
+                    style: TextStyle(fontSize: 12, color: context.textSub)),
                 const SizedBox(height: 10),
                 Text(
-                  'A wearable IoT-based system for real-time monitoring of infant heart rate, body temperature, and oxygen saturation levels.',
+                  AppStrings.t('app_desc'),
                   style: TextStyle(fontSize: 13, color: context.textSub, height: 1.5),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8, runSpacing: 6,
                   children: [
-                    _Tag(label: 'Firebase', color: _orange),
-                    _Tag(label: 'IoT Sensors', color: _blue),
-                    _Tag(label: 'Real-time', color: _green),
+                    _Tag(label: 'Firebase',    color: const Color(0xFFFFAB40)),
+                    _Tag(label: 'IoT Sensors', color: const Color(0xFF4F8EF7)),
+                    _Tag(label: 'Real-time',   color: _green),
                   ],
                 ),
               ],
@@ -295,52 +331,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 28),
 
-          // ── Save All Settings ─────────────────
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Settings saved'),
-                    backgroundColor: context.primary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    margin: const EdgeInsets.all(16),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.save_rounded, size: 18),
-              label: const Text(
-                'Save All Settings',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: context.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
           // ── Log Out ───────────────────────────
           SizedBox(
-            width: double.infinity,
-            height: 48,
+            width: double.infinity, height: 48,
             child: OutlinedButton.icon(
               onPressed: _logout,
               icon: const Icon(Icons.logout_rounded, size: 16, color: _red),
-              label: const Text(
-                'Log Out',
-                style: TextStyle(color: _red, fontSize: 14, fontWeight: FontWeight.w600),
-              ),
+              label: Text(AppStrings.t('log_out'),
+                  style: const TextStyle(
+                      color: _red, fontSize: 14, fontWeight: FontWeight.w600)),
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: _red.withOpacity(0.35)),
+                side: BorderSide(color: _red.withValues(alpha: 0.35)),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
             ),
@@ -367,14 +368,10 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: context.primary),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: context.textMain,
-          ),
-        ),
+        Text(label,
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w700,
+                color: context.textMain)),
       ],
     );
   }
@@ -396,7 +393,7 @@ class _SettingsCard extends StatelessWidget {
         border: Border.all(color: context.dividerClr),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(context.isDark ? 0.25 : 0.05),
+            color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.05),
             blurRadius: 8, offset: const Offset(0, 3),
           ),
         ],
@@ -412,12 +409,15 @@ class _SettingsCard extends StatelessWidget {
 class _ToggleTile extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
   final Color? activeColor;
+
   const _ToggleTile({
     required this.icon, required this.label,
     required this.value, required this.onChanged,
+    this.subtitle,
     this.activeColor,
   });
 
@@ -428,12 +428,18 @@ class _ToggleTile extends StatelessWidget {
       child: Row(children: [
         Icon(icon, size: 18, color: context.textSub),
         const SizedBox(width: 12),
-        Expanded(child: Text(label,
-            style: TextStyle(fontSize: 14, color: context.textMain))),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: TextStyle(fontSize: 14, color: context.textMain)),
+            if (subtitle != null)
+              Text(subtitle!, style: TextStyle(fontSize: 11, color: context.textSub)),
+          ],
+        )),
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: activeColor ?? _green,
+          activeThumbColor: activeColor ?? _green,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ]),
@@ -450,6 +456,7 @@ class _SelectTile extends StatelessWidget {
   final String value;
   final List<String> options;
   final ValueChanged<String> onChanged;
+
   const _SelectTile({
     required this.icon, required this.label,
     required this.value, required this.options,
@@ -480,8 +487,7 @@ class _SelectTile extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(child: Text(label,
               style: TextStyle(fontSize: 14, color: context.textMain))),
-          Text(value,
-              style: TextStyle(fontSize: 13, color: context.textSub)),
+          Text(value, style: TextStyle(fontSize: 13, color: context.textSub)),
           const SizedBox(width: 4),
           Icon(Icons.chevron_right_rounded, size: 18, color: context.textSub),
         ]),
@@ -498,6 +504,7 @@ class _OptionSheet extends StatelessWidget {
   final List<String> options;
   final String selected;
   final Color accentColor;
+
   const _OptionSheet({
     required this.title, required this.options,
     required this.selected, required this.accentColor,
@@ -510,27 +517,25 @@ class _OptionSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // drag handle
           Container(
             width: 36, height: 4,
             decoration: BoxDecoration(
-              color: context.dividerClr,
-              borderRadius: BorderRadius.circular(2),
-            ),
+                color: context.dividerClr,
+                borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
           Text(title,
               style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700,
-                color: context.textMain,
-              )),
+                  fontSize: 16, fontWeight: FontWeight.w700,
+                  color: Theme.of(context).textTheme.bodyLarge?.color)),
           const SizedBox(height: 12),
           ...options.map((opt) {
             final isSel = opt == selected;
             return ListTile(
               title: Text(opt,
                   style: TextStyle(
-                    color: isSel ? accentColor : context.textMain,
+                    color: isSel ? accentColor
+                        : Theme.of(context).textTheme.bodyLarge?.color,
                     fontWeight: isSel ? FontWeight.w700 : FontWeight.normal,
                   )),
               trailing: isSel ? Icon(Icons.check_rounded, color: accentColor) : null,
@@ -539,163 +544,6 @@ class _OptionSheet extends StatelessWidget {
           }),
         ],
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────
-//  Threshold card  (Min + Max input fields)
-// ─────────────────────────────────────────────
-class _ThresholdCard extends StatelessWidget {
-  final String label, minLabel, maxLabel;
-  final IconData icon;
-  final Color iconColor;
-  final double minValue, maxValue;
-  final (double, double) minRange, maxRange;
-  final int decimals;
-  final ValueChanged<double> onMinChanged, onMaxChanged;
-
-  const _ThresholdCard({
-    required this.label,   required this.icon,  required this.iconColor,
-    required this.minLabel, required this.maxLabel,
-    required this.minValue, required this.maxValue,
-    required this.minRange, required this.maxRange,
-    required this.onMinChanged, required this.onMaxChanged,
-    this.decimals = 0,
-  });
-
-  String _fmt(double v) =>
-      decimals > 0 ? v.toStringAsFixed(decimals) : v.toStringAsFixed(0);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.dividerClr),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(context.isDark ? 0.25 : 0.05),
-            blurRadius: 8, offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Label
-          Row(children: [
-            Icon(icon, size: 16, color: iconColor),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w700,
-                color: iconColor,
-              ),
-            ),
-          ]),
-          const SizedBox(height: 14),
-          // Min / Max fields side by side
-          Row(children: [
-            Expanded(child: _ThresholdField(
-              label: minLabel, value: _fmt(minValue),
-              min: minRange.$1, max: minRange.$2,
-              color: iconColor,
-              onChanged: onMinChanged,
-              decimals: decimals,
-            )),
-            const SizedBox(width: 12),
-            Expanded(child: _ThresholdField(
-              label: maxLabel, value: _fmt(maxValue),
-              min: maxRange.$1, max: maxRange.$2,
-              color: iconColor,
-              onChanged: onMaxChanged,
-              decimals: decimals,
-            )),
-          ]),
-        ],
-      ),
-    );
-  }
-}
-
-class _ThresholdField extends StatefulWidget {
-  final String label, value;
-  final double min, max;
-  final Color color;
-  final int decimals;
-  final ValueChanged<double> onChanged;
-
-  const _ThresholdField({
-    required this.label, required this.value,
-    required this.min,   required this.max,
-    required this.color, required this.onChanged,
-    this.decimals = 0,
-  });
-
-  @override
-  State<_ThresholdField> createState() => _ThresholdFieldState();
-}
-
-class _ThresholdFieldState extends State<_ThresholdField> {
-  late TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.value);
-  }
-
-  @override
-  void didUpdateWidget(_ThresholdField old) {
-    super.didUpdateWidget(old);
-    if (old.value != widget.value && _ctrl.text != widget.value) {
-      _ctrl.text = widget.value;
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(widget.label,
-            style: TextStyle(fontSize: 11, color: context.textSub)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _ctrl,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(fontSize: 14, color: context.textMain, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: context.bgPage,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: context.dividerClr),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: widget.color, width: 1.8),
-            ),
-          ),
-          onSubmitted: (v) {
-            final parsed = double.tryParse(v);
-            if (parsed != null) {
-              widget.onChanged(parsed.clamp(widget.min, widget.max));
-            }
-          },
-        ),
-      ],
     );
   }
 }
@@ -713,12 +561,13 @@ class _Tag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(label,
-          style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+          style: TextStyle(
+              fontSize: 11, color: color, fontWeight: FontWeight.w600)),
     );
   }
 }

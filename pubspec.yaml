@@ -28,6 +28,14 @@ dependencies:
   # Time formatting
   intl: ^0.20.2
 
+  # URL launcher (tel: links for SOS)
+  url_launcher: ^6.3.0
+
+  # Export (History screen)
+  share_plus: ^10.1.4
+  path_provider: ^2.1.5
+  pdf: ^3.11.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

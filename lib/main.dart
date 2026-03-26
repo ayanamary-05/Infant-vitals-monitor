@@ -4,28 +4,32 @@ import 'firebase_options.dart';
 import 'screens/auth_wrapper.dart';
 
 // ─────────────────────────────────────────────
-//  Global theme-mode notifier
-//  Settings screen reads/writes this directly.
+//  Global notifiers
 // ─────────────────────────────────────────────
-final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.dark);
+final themeModeNotifier    = ValueNotifier<ThemeMode>(ThemeMode.dark);
+final languageNotifier     = ValueNotifier<Locale>(const Locale('en'));
+final tempUnitNotifier     = ValueNotifier<String>('Celsius');      // 'Celsius' | 'Fahrenheit'
+final refreshRateNotifier  = ValueNotifier<int>(3);                 // seconds
+final alertCountNotifier   = ValueNotifier<int>(0);                 // active alert count
 
 // ─────────────────────────────────────────────
-//  Global language notifier
-//  Maps a language display name → Locale
+//  Supported locales
 // ─────────────────────────────────────────────
-final languageNotifier = ValueNotifier<Locale>(const Locale('en'));
-
 const Map<String, Locale> kSupportedLocales = {
-  'English':    Locale('en'),
-  'Swahili':    Locale('sw'),
-  'French':     Locale('fr'),
-  'Spanish':    Locale('es'),
-  'Arabic':     Locale('ar'),
-  'Hindi':      Locale('hi'),
-  'Portuguese': Locale('pt'),
-  'German':     Locale('de'),
-  'Mandarin':   Locale('zh'),
+  'English':              Locale('en'),
+  'Swahili':              Locale('sw'),
+  'French':               Locale('fr'),
+  'Hindi':                Locale('hi'),
+  'Spanish':              Locale('es'),
+  'Arabic':               Locale('ar'),
+  'Malayalam':            Locale('ml'),
+  'Portuguese':           Locale('pt'),
+  'German':               Locale('de'),
+  'Chinese Simplified':   Locale('zh'),
 };
+
+final batterySaverNotifier  = ValueNotifier<bool>(false);
+final cloudBackupNotifier   = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,73 +48,79 @@ class MyApp extends StatelessWidget {
       valueListenable: themeModeNotifier,
       builder: (_, mode, __) => ValueListenableBuilder<Locale>(
         valueListenable: languageNotifier,
-        builder: (_, locale, __) => MaterialApp(
-          title: 'Infant Vitals Monitor',
-          debugShowCheckedModeBanner: false,
-          themeMode: mode,
-          locale: locale,
-          supportedLocales: kSupportedLocales.values.toList(),
+        builder: (_, locale, __) {
+          final isRtl = locale.languageCode == 'ar';
+          return Directionality(
+            textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+            child: MaterialApp(
+              title: 'Infant Vitals Monitor',
+              debugShowCheckedModeBanner: false,
+              themeMode: mode,
+              locale: locale,
+              supportedLocales: kSupportedLocales.values.toList(),
 
-        // ── Light theme ──────────────────────────
-          theme: ThemeData(
-            brightness: Brightness.light,
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6366F1),
-              brightness: Brightness.light,
-              surface: Colors.white,
-              onSurface: Colors.black87,
-              onSurfaceVariant: Colors.black54,
-            ),
-            scaffoldBackgroundColor: const Color(0xFFF1F5F9),
-            dividerColor: const Color(0xFFE2E8F0),
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Colors.black87),
-              bodySmall: TextStyle(color: Colors.black54),
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black87,
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-            ),
-            cardTheme: const CardThemeData(
-              color: Colors.white,
-              elevation: 0,
-            ),
-          ),
+              // ── Light theme ──────────────────────────
+              theme: ThemeData(
+                brightness: Brightness.light,
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color(0xFF6366F1),
+                  brightness: Brightness.light,
+                  surface: Colors.white,
+                  onSurface: Colors.black87,
+                  onSurfaceVariant: Colors.black54,
+                ),
+                scaffoldBackgroundColor: const Color(0xFFF1F5F9),
+                dividerColor: const Color(0xFFE2E8F0),
+                textTheme: const TextTheme(
+                  bodyLarge: TextStyle(color: Colors.black87),
+                  bodySmall: TextStyle(color: Colors.black54),
+                ),
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black87,
+                  elevation: 0,
+                  surfaceTintColor: Colors.transparent,
+                ),
+                cardTheme: const CardThemeData(
+                  color: Colors.white,
+                  elevation: 0,
+                ),
+              ),
 
-          // ── Dark theme ───────────────────────────
-          darkTheme: ThemeData(
-            brightness: Brightness.dark,
-            useMaterial3: true,
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF6366F1),
-              surface: Color(0xFF1E293B),
-              onSurface: Color(0xFFF1F5F9),
-              onSurfaceVariant: Color(0xFF94A3B8),
-              surfaceContainerHighest: Color(0xFF334155),
-            ),
-            scaffoldBackgroundColor: const Color(0xFF0F172A),
-            dividerColor: const Color(0xFF334155),
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFFF1F5F9)),
-              bodySmall: TextStyle(color: Color(0xFF94A3B8)),
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1E293B),
-              foregroundColor: Color(0xFFF1F5F9),
-              elevation: 0,
-              surfaceTintColor: Colors.transparent,
-            ),
-            cardTheme: const CardThemeData(
-              color: Color(0xFF1E293B),
-              elevation: 0,
-            ),
-          ),
+              // ── Dark theme ───────────────────────────
+              darkTheme: ThemeData(
+                brightness: Brightness.dark,
+                useMaterial3: true,
+                colorScheme: const ColorScheme.dark(
+                  primary: Color(0xFF6366F1),
+                  surface: Color(0xFF1E293B),
+                  onSurface: Color(0xFFF1F5F9),
+                  onSurfaceVariant: Color(0xFF94A3B8),
+                  surfaceContainerHighest: Color(0xFF334155),
+                ),
+                scaffoldBackgroundColor: const Color(0xFF0F172A),
+                dividerColor: const Color(0xFF334155),
+                textTheme: const TextTheme(
+                  bodyLarge: TextStyle(color: Color(0xFFF1F5F9)),
+                  bodySmall: TextStyle(color: Color(0xFF94A3B8)),
+                ),
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: Color(0xFF1E293B),
+                  foregroundColor: Color(0xFFF1F5F9),
+                  elevation: 0,
+                  surfaceTintColor: Colors.transparent,
+                ),
+                cardTheme: const CardThemeData(
+                  color: Color(0xFF1E293B),
+                  elevation: 0,
+                ),
+              ),
 
-          home: const AuthWrapper(),
-        ),
+              home: const AuthWrapper(),
+            ),
+          );
+        },
       ),
     );
   }
