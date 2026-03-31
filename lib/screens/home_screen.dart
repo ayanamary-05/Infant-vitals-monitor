@@ -447,9 +447,10 @@ class _DashboardTabState extends State<_DashboardTab>
                       ),
                     ),
                   ]),
-                ),
-                ), // End Health status ClipRRect
-                SizedBox(height: 20),
+                ), // ends AnimatedContainer
+              ), // ends BackdropFilter
+            ), // ends ClipRRect
+            SizedBox(height: 20),
 
                 // ── Heart Rate ──
                 _DashboardVitalCard(
@@ -684,6 +685,7 @@ class _DashboardVitalCard extends StatelessWidget {
           ),
         ],
       ),
+      ), // Container close
       ), // Backdrop filter close
     ); // ClipRRect close
   }
