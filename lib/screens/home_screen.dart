@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:ui';
 import 'package:first_app/screens/theme_ext.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -328,37 +329,49 @@ class _DashboardTabState extends State<_DashboardTab>
           final score    = _healthScore(v);
           final hasAlert = score < 75;
 
-          return SafeArea(
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.fromLTRB(20, 24, 20, 32),
-              children: [
-                // ── Greeting ──
-                Text(_greetingLine,
-                    style: TextStyle(color: context.subtext, fontSize: 14)),
-                SizedBox(height: 4),
-                Text(AppStrings.t('infant_monitoring'),
-                    style: TextStyle(
-                        color: context.textMain, fontSize: 26,
-                        fontWeight: FontWeight.bold)),
-                SizedBox(height: 20),
+          return Stack(
+            children: [
+              // Background image & dark overlay
+              SizedBox.expand(
+                child: Image.asset("assets/images/dashboard_bg.jpg", fit: BoxFit.cover),
+              ),
+              Container(color: Colors.black.withValues(alpha: 0.68)),
 
-                // ── Health status banner ──
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 400),
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: hasAlert
-                        ? kRed.withValues(alpha: 0.12)
-                        : kGreen.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: hasAlert
-                          ? kRed.withValues(alpha: 0.35)
-                          : kGreen.withValues(alpha: 0.35),
-                    ),
-                  ),
+              SafeArea(
+                child: ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(20, 24, 20, 32),
+                  children: [
+                    // ── Greeting ──
+                    Text(_greetingLine,
+                        style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    SizedBox(height: 4),
+                    Text(AppStrings.t('infant_monitoring'),
+                        style: TextStyle(
+                            color: Colors.white, fontSize: 26,
+                            fontWeight: FontWeight.bold)),
+                    SizedBox(height: 20),
+
+                    // ── Health status banner ──
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: hasAlert
+                                ? kRed.withValues(alpha: 0.15)
+                                : kGreen.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: hasAlert
+                                  ? kRed.withValues(alpha: 0.35)
+                                  : kGreen.withValues(alpha: 0.35),
+                            ),
+                          ),
                   child: Row(children: [
                     Icon(
                       hasAlert
@@ -435,6 +448,7 @@ class _DashboardTabState extends State<_DashboardTab>
                     ),
                   ]),
                 ),
+                ), // End Health status ClipRRect
                 SizedBox(height: 20),
 
                 // ── Heart Rate ──
@@ -483,7 +497,9 @@ class _DashboardTabState extends State<_DashboardTab>
                 ),
               ],
             ),
-          );
+          ),
+          ],
+         );
         },
       ),
     );
@@ -518,26 +534,30 @@ class _DashboardVitalCard extends StatelessWidget {
   Color _trendColor(BuildContext context) {
     if (trend == '↑') return kRed;
     if (trend == '↓') return kBlue;
-    return context.subtext;
+    return Colors.white70;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      decoration: BoxDecoration(
-        color: context.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.textMain.withValues(alpha: 0.06)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
+          child: Row(
         children: [
           // Icon with optional pulse ring
           SizedBox(
@@ -579,11 +599,11 @@ class _DashboardVitalCard extends StatelessWidget {
               children: [
                 Text(label,
                     style: TextStyle(
-                        color: context.textMain, fontSize: 15,
+                        color: Colors.white, fontSize: 15,
                         fontWeight: FontWeight.w600)),
                 SizedBox(height: 3),
                 Text(normalRange,
-                    style: TextStyle(color: context.subtext, fontSize: 11)),
+                    style: TextStyle(color: Colors.white70, fontSize: 11)),
                 SizedBox(height: 6),
                 // Prominent timestamp pill
                 AnimatedSwitcher(
@@ -597,12 +617,12 @@ class _DashboardVitalCard extends StatelessWidget {
                               width: 10,
                               height: 10,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 1.5, color: context.subtext),
+                                  strokeWidth: 1.5, color: Colors.white70),
                             ),
                             SizedBox(width: 6),
                             Text(
                               AppStrings.t('updating'),
-                              style: TextStyle(color: context.subtext, fontSize: 11),
+                              style: TextStyle(color: Colors.white70, fontSize: 11),
                             ),
                           ],
                         )
@@ -610,10 +630,10 @@ class _DashboardVitalCard extends StatelessWidget {
                           key: const ValueKey('timestamp'),
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: context.textMain.withValues(alpha: 0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: context.textMain.withValues(alpha: 0.10),
+                              color: Colors.white.withValues(alpha: 0.10),
                             ),
                           ),
                           child: Row(
@@ -625,7 +645,7 @@ class _DashboardVitalCard extends StatelessWidget {
                               Text(
                                 '${AppStrings.t('updated')} $lastUpdated',
                                 style: TextStyle(
-                                  color: context.subtext,
+                                  color: Colors.white70,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -647,7 +667,7 @@ class _DashboardVitalCard extends StatelessWidget {
                 children: [
                   Text(value,
                       style: TextStyle(
-                          color: context.textMain, fontSize: 30,
+                          color: Colors.white, fontSize: 30,
                           fontWeight: FontWeight.bold,
                           height: 1.0)),
                   SizedBox(width: 4),
@@ -659,12 +679,13 @@ class _DashboardVitalCard extends StatelessWidget {
                 ],
               ),
               Text(unit,
-                  style: TextStyle(color: context.subtext, fontSize: 12)),
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
             ],
           ),
         ],
       ),
-    );
+      ), // Backdrop filter close
+    ); // ClipRRect close
   }
 
   Widget _iconCircle() => Container(
