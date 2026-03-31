@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:first_app/screens/theme_ext.dart';
@@ -83,6 +84,95 @@ class _Annotation {
   final int pointIndex;
   final String note;
   _Annotation({required this.pointIndex, required this.note});
+}
+
+// ── Annotation Dialog Component ────────────────────────────────────────────
+class _AddNoteDialog extends StatefulWidget {
+  final Color defColor;
+  const _AddNoteDialog({required this.defColor});
+
+  @override
+  State<_AddNoteDialog> createState() => _AddNoteDialogState();
+}
+
+class _AddNoteDialogState extends State<_AddNoteDialog> {
+  late final TextEditingController _ctrl;
+  String? _localError;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: context.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text('Add Note', style: TextStyle(color: context.textMain, fontSize: 16)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            style: TextStyle(color: context.textMain, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'e.g. after feeding',
+              hintStyle: TextStyle(color: context.subtext),
+              filled: true, fillColor: context.bg,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: context.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: context.border),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: widget.defColor),
+              ),
+            ),
+          ),
+          if (_localError != null) ...[
+            SizedBox(height: 8),
+            Text(_localError!, style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Cancel', style: TextStyle(color: context.subtext)),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final text = _ctrl.text.trim();
+            if (text.isEmpty) {
+              setState(() => _localError = "Please enter note");
+            } else {
+              Navigator.of(context).pop(text);
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: widget.defColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: Text('Save'),
+        ),
+      ],
+    );
+  }
 }
 
 // ── Screen ─────────────────────────────────────────────────────────────────
@@ -238,54 +328,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
   _VitalDef get _def => _vitalDefs[_vitalIndex];
 
   void _addAnnotation(int pointIndex) async {
-    final ctrl = TextEditingController();
-    final result = await showDialog<String>(
+    final result = await showDialog<String?>(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: context.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Add Note', style: TextStyle(color: context.textMain, fontSize: 16)),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          style: TextStyle(color: context.textMain, fontSize: 14),
-          decoration: InputDecoration(
-            hintText: 'e.g. after feeding',
-            hintStyle: TextStyle(color: context.subtext),
-            filled: true, fillColor: context.bg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: context.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: context.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: _def.color),
-            ),
-          ),
-
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
-            child: Text('Cancel', style: TextStyle(color: context.subtext)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(ctrl.text.trim()),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _def.color,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text('Save'),
-          ),
-        ],
-      ),
+      builder: (ctx) => _AddNoteDialog(defColor: _def.color),
     );
-    ctrl.dispose();
+    if (!mounted) return;
+    
     if (result != null && result.isNotEmpty) {
       setState(() {
         _annotations.removeWhere((a) => a.pointIndex == pointIndex);
@@ -309,22 +357,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final displayMax = displayData.reduce(math.max);
         final displayAvg = displayData.reduce((a, b) => a + b) / displayData.length;
 
-        return Scaffold(
-          backgroundColor: context.bg,
-          appBar: AppBar(
-            backgroundColor: context.surface,
-            elevation: 0,
-            surfaceTintColor: Colors.transparent,
+        return Stack(
+          children: [
+            SizedBox.expand(
+              child: Image.asset("assets/images/vitalshistory_bg.jpg", fit: BoxFit.cover),
+            ),
+            Container(color: Colors.black.withValues(alpha: 0.68)),
+            Scaffold(
+              resizeToAvoidBottomInset: false,
+              backgroundColor: Colors.transparent,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
             automaticallyImplyLeading: false,
             toolbarHeight: 64,
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(AppStrings.t('vitals_history'),
-                    style: TextStyle(color: context.textMain, fontSize: 18,
+                    style: TextStyle(color: Colors.white, fontSize: 18,
                         fontWeight: FontWeight.w700)),
                 Text(AppStrings.t('historical_trends'),
-                    style: TextStyle(color: context.subtext, fontSize: 11)),
+                    style: TextStyle(color: Colors.white70, fontSize: 11)),
               ],
             ),
             actions: [
@@ -343,7 +398,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(1),
-              child: Container(height: 1, color: context.border),
+              child: Container(height: 1, color: Colors.white24),
             ),
           ),
           body: SingleChildScrollView(
@@ -374,31 +429,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 SizedBox(height: 20),
 
                 // ── Chart ──────────────────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: context.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: context.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        blurRadius: 10, offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _timeRange.label,
-                            style: TextStyle(
-                                color: context.subtext, fontSize: 12,
-                                fontWeight: FontWeight.w500),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10, offset: const Offset(0, 4),
                           ),
+                        ],
+                      ),
+                      padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _timeRange.label,
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 12,
+                                    fontWeight: FontWeight.w500),
+                              ),
                           if (_touchedIndex != null)
                             TextButton.icon(
                               onPressed: () => _addAnnotation(_touchedIndex!),
@@ -464,7 +522,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 return ann != null
                                     ? Text('📝 ${ann.note}',
                                         style: TextStyle(
-                                            color: context.subtext, fontSize: 11))
+                                            color: Colors.white70, fontSize: 11))
                                     : SizedBox.shrink();
                               }),
                             ],
@@ -473,6 +531,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ],
                   ),
                 ),
+                ), // End BackdropFilter
+                ), // End ClipRRect
                 SizedBox(height: 16),
 
                 // ── Stats ──────────────────────────────────
@@ -500,33 +560,55 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 if (_annotations.isNotEmpty) ...[
                   SizedBox(height: 20),
                   Text('Notes',
-                      style: TextStyle(color: context.textMain, fontSize: 15,
+                      style: TextStyle(color: Colors.white, fontSize: 15,
                           fontWeight: FontWeight.w700)),
                   SizedBox(height: 10),
-                  ..._annotations.map((a) => Container(
-                    margin: EdgeInsets.only(bottom: 8),
-                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: context.surface,
+                  ..._annotations.map((a) => Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: context.border),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                          ),
+                          child: Row(children: [
+                            Icon(Icons.sticky_note_2_outlined,
+                                size: 14, color: _def.color),
+                            SizedBox(width: 8),
+                            Text('Point ${a.pointIndex + 1}: ',
+                                style: TextStyle(color: _def.color, fontSize: 12,
+                                    fontWeight: FontWeight.w600)),
+                            Expanded(child: Text(a.note,
+                                style: TextStyle(color: Colors.white70, fontSize: 12))),
+                            SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _annotations.remove(a);
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: EdgeInsets.all(4.0),
+                                child: Icon(Icons.delete_outline, size: 16, color: Colors.white38),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ),
                     ),
-                    child: Row(children: [
-                      Icon(Icons.sticky_note_2_outlined,
-                          size: 14, color: _def.color),
-                      SizedBox(width: 8),
-                      Text('Point ${a.pointIndex + 1}: ',
-                          style: TextStyle(color: _def.color, fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                      Text(a.note,
-                          style: TextStyle(color: context.subtext, fontSize: 12)),
-                    ]),
                   )),
                 ],
               ],
             ),
           ),
-        );
+        ), // End Scaffold
+        ],
+        ); // End Stack
       },
     );
   }
@@ -739,14 +821,17 @@ class _VitalTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 42,
-      decoration: BoxDecoration(
-        color: context.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.border),
-      ),
-      child: Row(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+        child: Container(
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          ),
+          child: Row(
         children: List.generate(_vitalDefs.length, (i) {
           final isActive = i == selected;
           final def = _vitalDefs[i];
@@ -764,7 +849,7 @@ class _VitalTabBar extends StatelessWidget {
                 child: Text(
                   def.label,
                   style: TextStyle(
-                    color: isActive ? Colors.white : context.subtext,
+                    color: isActive ? Colors.white : Colors.white70,
                     fontSize: 12, fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
                   ),
                 ),
@@ -772,8 +857,10 @@ class _VitalTabBar extends StatelessWidget {
             ),
           );
         }),
-      ),
-    );
+      ), // End Row
+      ), // End Container
+      ), // End BackdropFilter
+    ); // End ClipRRect
   }
 }
 
@@ -795,24 +882,29 @@ class _TimeRangeBar extends StatelessWidget {
           padding: EdgeInsets.only(right: r != TimeRange.d30 ? 8 : 0),
           child: GestureDetector(
             onTap: () => onTap(r),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-              decoration: BoxDecoration(
-                color: isSel ? accentColor.withValues(alpha: 0.15) : context.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSel ? accentColor : context.border,
-                ),
-              ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: isSel ? accentColor.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.08),
+                    border: Border.all(
+                      color: isSel ? accentColor : Colors.white.withValues(alpha: 0.15),
+                    ),
+                  ),
               child: Text(
                 r.label,
                 style: TextStyle(
-                  color: isSel ? accentColor : context.subtext,
+                  color: isSel ? accentColor : Colors.white70,
                   fontSize: 12, fontWeight: isSel ? FontWeight.w700 : FontWeight.normal,
                 ),
               ),
             ),
+            ), // End BackdropFilter
+            ), // End ClipRRect
           ),
         );
       }).toList(),
@@ -832,26 +924,31 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          color: context.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.border),
-        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+          child: Container(
+            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            ),
         child: Column(
           children: [
             Text(label,
-                style: TextStyle(color: context.subtext, fontSize: 11)),
+                style: TextStyle(color: Colors.white70, fontSize: 11)),
             SizedBox(height: 4),
             Text(value,
                 style: TextStyle(
                     color: color, fontSize: 22, fontWeight: FontWeight.w800)),
             Text(unit,
-                style: TextStyle(color: context.subtext, fontSize: 10)),
+                style: TextStyle(color: Colors.white70, fontSize: 10)),
           ],
         ),
       ),
+      ), // End BackdropFilter
+      ), // End ClipRRect
     );
   }
 }
