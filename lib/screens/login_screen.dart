@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_app/screens/home_screen.dart';
 
@@ -47,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 36),
               child: Column(
                 children: [
-                  const Spacer(flex: 3),
+                  const Spacer(),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -198,9 +199,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password: password,
       );
 
+      final uid = credential.user!.uid;
       await credential.user?.updateDisplayName('$firstName $lastName');
+
+      // Write role, name, email to Firebase Realtime Database
+      await FirebaseDatabase.instance.ref('users/$uid').set({
+        'role': _selectedRole,
+        'name': '$firstName $lastName',
+        'email': email,
+      });
+
+      // Cache role locally for fast access
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_role', _selectedRole);
+
       await credential.user?.sendEmailVerification();
 
       if (!mounted) return;
@@ -562,7 +574,6 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _isLoading = false;
-  String _selectedRole = 'Parent';
   bool _passwordObscured = true;
 
   @override
@@ -603,15 +614,20 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Save the remember me preference so AuthWrapper reads it on next cold open
+      // Fetch role from Firebase Realtime Database
+      final uid = credential.user!.uid;
+      final snap = await FirebaseDatabase.instance.ref('users/$uid/role').get();
+      final role = (snap.value as String?) ?? 'Parent';
+
+      // Cache locally for fast access throughout the session
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('remember_me', _rememberMe);
-      await prefs.setString('user_role', _selectedRole);
+      await prefs.setString('user_role', role);
 
       if (!mounted) return;
 
@@ -724,23 +740,6 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ),
                         ),
                         const SizedBox(height: 36),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _RolePill(
-                              label: "Parent",
-                              isSelected: _selectedRole == 'Parent',
-                              onTap: () => setState(() => _selectedRole = 'Parent'),
-                            ),
-                            const SizedBox(width: 16),
-                            _RolePill(
-                              label: "Caregiver",
-                              isSelected: _selectedRole == 'Caregiver',
-                              onTap: () => setState(() => _selectedRole = 'Caregiver'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
                         _GlassTextField(
                           hintText: "email address",
                           controller: _emailController,
