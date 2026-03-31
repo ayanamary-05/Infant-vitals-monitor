@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -80,7 +81,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   // ── Infant fields ──────────────────────────
-  String infantName        = 'Baby Sarah';
+  String infantName        = 'Sarah';
   String infantGender      = 'Female';
   String infantAge         = '3 months';
   String infantWeight      = '4.2 kg';
@@ -230,13 +231,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ── Open Caregiver edit sheet ──────────────
   void _editCaregiver() {
     final fields = [
-      _FieldDef(label: 'Name',             icon: Icons.badge_outlined,          initial: caregiverName),
+      _FieldDef(label: 'Name',             icon: Icons.badge_outlined,          initial: FirebaseAuth.instance.currentUser?.displayName ?? caregiverName),
       _FieldDef(label: 'Relationship',     icon: Icons.person_outline_rounded,  initial: caregiverRole),
-      _FieldDef(label: 'Email',            icon: Icons.email_outlined,          initial: caregiverEmail,
+      _FieldDef(label: 'Email',            icon: Icons.email_outlined,          initial: FirebaseAuth.instance.currentUser?.email ?? caregiverEmail,
                 keyboardType: TextInputType.emailAddress),
       _FieldDef(label: 'Phone',            icon: Icons.phone_outlined,          initial: caregiverPhone,
                 keyboardType: TextInputType.phone),
-      _FieldDef(label: 'Address',          icon: Icons.location_on_outlined,    initial: caregiverAddress),
       _FieldDef(label: 'Emergency Contact',icon: Icons.emergency_outlined,      initial: caregiverEmergency),
     ];
     _openEditSheet(
@@ -251,8 +251,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           caregiverRole      = values[1];
           caregiverEmail     = values[2];
           caregiverPhone     = values[3];
-          caregiverAddress   = values[4];
-          caregiverEmergency = values[5];
+          caregiverEmergency = values[4];
         });
         _saveToPrefs();
       },
@@ -261,102 +260,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
   void _addCaregiver() async {
-    final predefinedCaregivers = [
-      {'name': 'Sarah Jenkins (Nanny)', 'phone': '+1 555-0123'},
-      {'name': 'David Smith (Babysitter)', 'phone': '+1 555-0199'},
-      {'name': 'Maria Garcia (Night Nurse)', 'phone': '+1 555-0144'},
-      {'name': 'Emily Davis (Daycare)', 'phone': '+1 555-0188'},
-      {'name': 'Custom...', 'phone': ''},
-    ];
-    String selectedCaregiver = predefinedCaregivers.first['name']!;
-    
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    
-    // Initialize controllers with the first predefined caregiver
-    nameCtrl.text = predefinedCaregivers.first['name']!;
-    phoneCtrl.text = predefinedCaregivers.first['phone']!;
-
-    final result = await showDialog<bool>(
+    final result = await showDialog<String?>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          final isCustom = selectedCaregiver == 'Custom...';
-          return AlertDialog(
-            backgroundColor: context.bgCard,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text('Add Appointed Caregiver', style: TextStyle(color: context.textMain, fontSize: 16)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: selectedCaregiver,
-                    dropdownColor: context.bgCard,
-                    style: TextStyle(color: context.textMain, fontSize: 14),
-                    decoration: InputDecoration(
-                      labelText: 'Select Caregiver',
-                      labelStyle: TextStyle(color: context.textSub, fontSize: 13),
-                    ),
-                    items: predefinedCaregivers.map((cg) {
-                      return DropdownMenuItem(
-                        value: cg['name'],
-                        child: Text(cg['name']!),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setDialogState(() {
-                        selectedCaregiver = val!;
-                        if (val != 'Custom...') {
-                          final cg = predefinedCaregivers.firstWhere((e) => e['name'] == val);
-                          nameCtrl.text = cg['name']!;
-                          phoneCtrl.text = cg['phone']!;
-                        } else {
-                          nameCtrl.clear();
-                          phoneCtrl.clear();
-                        }
-                      });
-                    },
-                  ),
-                  if (isCustom) ...[
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: nameCtrl,
-                      style: TextStyle(color: context.textMain, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: 'Caregiver Name',
-                        labelStyle: TextStyle(color: context.textSub, fontSize: 13),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: phoneCtrl,
-                      keyboardType: TextInputType.phone,
-                      style: TextStyle(color: context.textMain, fontSize: 14),
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        labelStyle: TextStyle(color: context.textSub, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppStrings.t('cancel'))),
-              ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(AppStrings.t('add'))),
-            ],
-          );
-        }
-      ),
+      builder: (ctx) => const _CaregiverDialog(),
     );
-    if (result == true && nameCtrl.text.isNotEmpty) {
-      final now = DateTime.now();
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      final dateStr = '${months[now.month - 1]} ${now.day}, ${now.year}';
-      
+    if (result != null && result.isNotEmpty) {
       setState(() {
-        _appointedCaregivers.add("${nameCtrl.text}|${phoneCtrl.text}|$dateStr");
+        _appointedCaregivers.add(result);
       });
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList('p_appointed_caregivers', _appointedCaregivers);
@@ -365,125 +275,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ── Add growth entry (weight + optional height) ──────
   void _addGrowthEntry() async {
-    final weightCtrl = TextEditingController();
-    final heightCtrl = TextEditingController();
-    DateTime selectedDate = DateTime.now();
-
-    final result = await showDialog<bool>(
+    final result = await showDialog<_GrowthEntry>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: context.bgCard,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(AppStrings.t('add_growth_entry'),
-              style: TextStyle(color: context.textMain, fontSize: 16)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: weightCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(color: context.textMain, fontSize: 14),
-                  decoration: InputDecoration(
-                    labelText: AppStrings.t('weight_kg'),
-                    labelStyle: TextStyle(color: context.textSub, fontSize: 13),
-                    prefixIcon: Icon(Icons.monitor_weight_outlined, size: 18, color: _purple),
-                    filled: true, fillColor: context.bgPage,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: context.dividerColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: _purple, width: 1.8),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: heightCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: TextStyle(color: context.textMain, fontSize: 14),
-                  decoration: InputDecoration(
-                    labelText: AppStrings.t('height_cm'),
-                    labelStyle: TextStyle(color: context.textSub, fontSize: 13),
-                    prefixIcon: Icon(Icons.straighten_outlined, size: 18, color: _teal),
-                    filled: true, fillColor: context.bgPage,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: context.dividerColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: _teal, width: 1.8),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2025),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) setDialogState(() => selectedDate = picked);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: context.bgPage,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: context.dividerColor),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.calendar_today_outlined, size: 18, color: _purple),
-                        const SizedBox(width: 10),
-                        Text(
-                          '${selectedDate.month}/${selectedDate.day}/${selectedDate.year}',
-                          style: TextStyle(color: context.textMain, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text(AppStrings.t('cancel'), style: TextStyle(color: context.textSub)),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _purple, foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Text(AppStrings.t('add')),
-            ),
-          ],
-        ),
-      ),
+      builder: (ctx) => const _GrowthEntryDialog(),
     );
-    weightCtrl.dispose();
-    heightCtrl.dispose();
-    if (result == true) {
-      final kg = double.tryParse(weightCtrl.text);
-      final cm = double.tryParse(heightCtrl.text);
-      if (kg != null && kg > 0) {
-        setState(() {
-          _growthHistory.add(_GrowthEntry(
-            date: selectedDate, weightKg: kg, heightCm: cm,
-          ));
-          _growthHistory.sort((a, b) => a.date.compareTo(b.date));
-        });
-        _saveToPrefs();
-      }
+
+    if (result != null) {
+      setState(() {
+        _growthHistory.add(result);
+        _growthHistory.sort((a, b) => a.date.compareTo(b.date));
+      });
+      _saveToPrefs();
     }
   }
 
@@ -554,174 +356,172 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.bgPage,
-      appBar: AppBar(
-        backgroundColor: context.bgCard,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        automaticallyImplyLeading: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(AppStrings.t('profile'),
-                style: TextStyle(
-                    color: context.textMain, fontSize: 18, fontWeight: FontWeight.w700)),
-            Text('$infantName · ${AppStrings.t('caregiver_info')}',
-                style: TextStyle(color: context.textSub, fontSize: 11)),
-          ],
+    return Stack(
+      children: [
+        SizedBox.expand(
+          child: Image.asset('assets/images/profile_bg.jpg', fit: BoxFit.cover),
         ),
-        toolbarHeight: 64,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: context.dividerColor),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Infant profile ───────────────────
-            _SectionLabel(label: AppStrings.t('infant_profile')),
-            const SizedBox(height: 12),
-            _ProfileCard(
-              sectionIcon: Icons.child_care_rounded,
-              sectionIconColor: context.primary,
-              avatarIcon: Icons.child_care_rounded,
-              avatarIconColor: context.primary,
-              name: infantName,
-              subtitle: '$infantGender · $infantAge · $infantWeight',
-              showOnlineDot: true,
-              onEdit: _editInfant,
-              details: [
-                _DetailData(icon: Icons.calendar_today_outlined, label: 'Date of Birth', value: infantDob),
-                _DetailData(icon: Icons.monitor_weight_outlined,  label: 'Weight',       value: infantWeight),
-                _DetailData(icon: Icons.bloodtype_outlined,        label: 'Blood Type',   value: infantBloodType),
-                _DetailData(icon: Icons.favorite_border_rounded,   label: 'Allergies',    value: infantAllergies),
-                _DetailData(icon: Icons.note_alt_outlined,         label: 'Medical Notes',value: infantNotes),
-                _DetailData(icon: Icons.medical_services_outlined, label: 'Doctor',       value: doctorName),
-                _DetailData(icon: Icons.phone_outlined,            label: 'Doctor Phone', value: doctorPhone),
+        Container(color: Colors.black.withValues(alpha: 0.70)),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            automaticallyImplyLeading: false,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppStrings.t('profile'),
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                Text('${infantName.split(' ').first} \u00b7 ${AppStrings.t('caregiver_info')}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 11)),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            // ── Role Specific profile ────────────────
-            _SectionLabel(label: _userRole == 'Parent' ? 'Parent Profile' : AppStrings.t('caregiver_profile')),
-            const SizedBox(height: 12),
-            _ProfileCard(
-              sectionIcon: Icons.person_outline_rounded,
-              sectionIconColor: _teal,
-              avatarIcon: Icons.person_rounded,
-              avatarIconColor: _teal,
-              name: FirebaseAuth.instance.currentUser?.displayName ?? caregiverName,
-              subtitle: _userRole,
-              subtitleIsChip: true,
-              chipColor: _teal,
-              onEdit: _editCaregiver,
-              details: [
-                _DetailData(icon: Icons.person_outline_rounded, label: 'Role',              value: _userRole),
-                _DetailData(icon: Icons.email_outlined,         label: 'Email',             value: FirebaseAuth.instance.currentUser?.email ?? caregiverEmail),
-                _DetailData(icon: Icons.phone_outlined,          label: 'Phone',             value: caregiverPhone),
-                _DetailData(icon: Icons.location_on_outlined,    label: 'Address',           value: caregiverAddress),
-                _DetailData(icon: Icons.emergency_outlined,      label: 'Emergency Contact', value: caregiverEmergency),
-              ],
+            toolbarHeight: 64,
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(height: 1, color: Colors.white24),
             ),
-            const SizedBox(height: 20),
-
-            if (_userRole == 'Parent') ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _SectionLabel(label: 'Appointed Caregivers'),
-                  IconButton(
-                    icon: Icon(Icons.add_circle_outline, color: _teal),
-                    onPressed: _addCaregiver,
-                  )
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (_appointedCaregivers.isEmpty)
-                Text("No caregivers appointed yet. Tap the + icon to add one.", style: TextStyle(color: context.textSub, fontStyle: FontStyle.italic)),
-              ..._appointedCaregivers.map((c) {
-                final parts = c.split('|');
-                final name = parts[0];
-                final phone = parts.length > 1 ? parts[1] : '';
-                final addedDate = parts.length > 2 ? parts[2] : 'Unknown date';
-                return Card(
-                  color: context.bgCard,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(backgroundColor: _teal.withValues(alpha: 0.2), child: Icon(Icons.person, color: _teal)),
-                    title: Text(name, style: TextStyle(color: context.textMain, fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (phone.isNotEmpty) Text(phone, style: TextStyle(color: context.textSub)),
-                        Text('Added on: $addedDate', style: TextStyle(color: context.textSub, fontSize: 11, fontStyle: FontStyle.italic)),
-                      ]
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete_outline, color: _alertRed),
-                      onPressed: () async {
-                        setState(() {
-                          _appointedCaregivers.remove(c);
-                        });
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.setStringList('p_appointed_caregivers', _appointedCaregivers);
-                      },
-                    )
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionLabel(label: 'Infant - ${infantName.split(' ').first}'),
+                const SizedBox(height: 12),
+                _ProfileCard(
+                  sectionIcon: Icons.child_care_rounded,
+                  sectionIconColor: _teal,
+                  avatarIcon: Icons.child_care_rounded,
+                  avatarIconColor: _teal,
+                  name: infantName,
+                  subtitle: '$infantGender \u00b7 $infantAge \u00b7 $infantWeight',
+                  showOnlineDot: true,
+                  onEdit: _editInfant,
+                  details: [
+                    _DetailData(icon: Icons.calendar_today_outlined, label: 'Date of Birth', value: infantDob),
+                    _DetailData(icon: Icons.monitor_weight_outlined,  label: 'Weight',       value: infantWeight),
+                    _DetailData(icon: Icons.bloodtype_outlined,        label: 'Blood Type',   value: infantBloodType),
+                    _DetailData(icon: Icons.favorite_border_rounded,   label: 'Allergies',    value: infantAllergies),
+                    _DetailData(icon: Icons.note_alt_outlined,         label: 'Medical Notes',value: infantNotes),
+                    _DetailData(icon: Icons.medical_services_outlined, label: 'Doctor',       value: doctorName),
+                    _DetailData(icon: Icons.phone_outlined,            label: 'Doctor Phone', value: doctorPhone),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _SectionLabel(label: _userRole == 'Parent' ? 'Parent Profile' : AppStrings.t('caregiver_profile')),
+                const SizedBox(height: 12),
+                _ProfileCard(
+                  sectionIcon: Icons.person_outline_rounded,
+                  sectionIconColor: _teal,
+                  avatarIcon: Icons.person_rounded,
+                  avatarIconColor: _teal,
+                  name: FirebaseAuth.instance.currentUser?.displayName ?? caregiverName,
+                  subtitle: _userRole,
+                  subtitleIsChip: true,
+                  chipColor: _teal,
+                  onEdit: _editCaregiver,
+                  details: [
+                    _DetailData(icon: Icons.person_outline_rounded, label: 'Role',              value: _userRole),
+                    _DetailData(icon: Icons.email_outlined,         label: 'Email',             value: FirebaseAuth.instance.currentUser?.email ?? caregiverEmail),
+                    _DetailData(icon: Icons.phone_outlined,          label: 'Phone',             value: caregiverPhone),
+                    _DetailData(icon: Icons.emergency_outlined,      label: 'Emergency Contact', value: caregiverEmergency),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                if (_userRole == 'Parent') ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _SectionLabel(label: 'Appointed Caregivers'),
+                      IconButton(
+                        icon: Icon(Icons.add_circle_outline, color: _teal),
+                        onPressed: _addCaregiver,
+                      )
+                    ],
                   ),
-                );
-              }).toList(),
-              const SizedBox(height: 20),
-            ],
-
-            // ── Growth Tracker ───────────────────
-            _SectionLabel(label: AppStrings.t('growth_tracker')),
-            const SizedBox(height: 12),
-            _GrowthTrackerCard(
-              entries: _growthHistory,
-              onAddEntry: _addGrowthEntry,
+                  const SizedBox(height: 8),
+                  if (_appointedCaregivers.isEmpty)
+                    const Text('No caregivers appointed yet. Tap the + icon to add one.',
+                        style: TextStyle(color: Colors.white60, fontStyle: FontStyle.italic)),
+                  ..._appointedCaregivers.map((c) {
+                    final parts = c.split('|');
+                    final name = parts[0];
+                    final phone = parts.length > 1 ? parts[1] : '';
+                    final addedDate = parts.length > 2 ? parts[2] : 'Unknown date';
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(backgroundColor: _teal.withValues(alpha: 0.2), child: Icon(Icons.person, color: _teal)),
+                            title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (phone.isNotEmpty) Text(phone, style: const TextStyle(color: Colors.white70)),
+                                Text('Added on: $addedDate', style: const TextStyle(color: Colors.white54, fontSize: 11, fontStyle: FontStyle.italic)),
+                              ]
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete_outline, color: _alertRed),
+                              onPressed: () async {
+                                setState(() { _appointedCaregivers.remove(c); });
+                                final prefs = await SharedPreferences.getInstance();
+                                await prefs.setStringList('p_appointed_caregivers', _appointedCaregivers);
+                              },
+                            )
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  const SizedBox(height: 20),
+                ],
+                _SectionLabel(label: AppStrings.t('growth_tracker')),
+                const SizedBox(height: 12),
+                _GrowthTrackerCard(entries: _growthHistory, onAddEntry: _addGrowthEntry),
+                const SizedBox(height: 20),
+                _SectionLabel(label: AppStrings.t('vaccination_tracker')),
+                const SizedBox(height: 12),
+                _VaccinationTrackerCard(
+                  vaccinatedSet: _vaccinatedSet,
+                  onToggle: (vaccine, checked) {
+                    setState(() {
+                      if (checked) { _vaccinatedSet.add(vaccine); }
+                      else { _vaccinatedSet.remove(vaccine); }
+                    });
+                    _saveToPrefs();
+                  },
+                ),
+                const SizedBox(height: 20),
+                _SectionLabel(label: AppStrings.t('monitoring_summary')),
+                const SizedBox(height: 12),
+                MonitoringSummaryGrid(
+                  nextCheckup: nextCheckup,
+                  onAlertsTap: () => _showAlertBreakdown(context),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
-
-            const SizedBox(height: 20),
-
-            // ── Vaccination Tracker ──────────────
-            _SectionLabel(label: AppStrings.t('vaccination_tracker')),
-            const SizedBox(height: 12),
-            _VaccinationTrackerCard(
-              vaccinatedSet: _vaccinatedSet,
-              onToggle: (vaccine, checked) {
-                setState(() {
-                  if (checked) {
-                    _vaccinatedSet.add(vaccine);
-                  } else {
-                    _vaccinatedSet.remove(vaccine);
-                  }
-                });
-                _saveToPrefs();
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // ── Monitoring summary ───────────────
-            _SectionLabel(label: AppStrings.t('monitoring_summary')),
-            const SizedBox(height: 12),
-            MonitoringSummaryGrid(
-              nextCheckup: nextCheckup,
-              onAlertsTap: () => _showAlertBreakdown(context),
-            ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
+          ),
+        ), // End Scaffold
+      ],
+    ); // End Stack
   }
 }
+
+
 
 // ─────────────────────────────────────────────
 //  Alert breakdown item model
@@ -750,65 +550,65 @@ class _VaccinationTrackerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: context.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.06),
-            blurRadius: 12, offset: const Offset(0, 4),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Row(children: [
-              const Icon(Icons.vaccines_rounded, size: 18, color: _teal),
-              const SizedBox(width: 8),
-              Text(AppStrings.t('vaccinations'),
-                  style: TextStyle(color: context.textMain, fontSize: 14, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _teal.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${vaccinatedSet.length}/${kMilestoneVaccines.length}',
-                  style: const TextStyle(color: _teal, fontSize: 11, fontWeight: FontWeight.w700),
-                ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(children: [
+                  const Icon(Icons.vaccines_rounded, size: 18, color: _teal),
+                  const SizedBox(width: 8),
+                  Text(AppStrings.t('vaccinations'),
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: _teal.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${vaccinatedSet.length}/${kMilestoneVaccines.length}',
+                      style: const TextStyle(color: _teal, fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ]),
               ),
-            ]),
+              Divider(color: Colors.white.withValues(alpha: 0.12), height: 1, indent: 16, endIndent: 16),
+              ...kMilestoneVaccines.map((v) {
+                final done = vaccinatedSet.contains(v);
+                return CheckboxListTile(
+                  dense: true,
+                  value: done,
+                  onChanged: (checked) => onToggle(v, checked ?? false),
+                  title: Text(v,
+                      style: TextStyle(
+                        color: done ? _teal : Colors.white,
+                        fontSize: 13,
+                        decoration: done ? TextDecoration.lineThrough : null,
+                        decorationColor: _teal,
+                      )),
+                  activeColor: _teal,
+                  checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  controlAffinity: ListTileControlAffinity.trailing,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                );
+              }),
+              const SizedBox(height: 8),
+            ],
           ),
-          Divider(color: context.dividerColor, height: 1, indent: 16, endIndent: 16),
-          ...kMilestoneVaccines.map((v) {
-            final done = vaccinatedSet.contains(v);
-            return CheckboxListTile(
-              dense: true,
-              value: done,
-              onChanged: (checked) => onToggle(v, checked ?? false),
-              title: Text(v,
-                  style: TextStyle(
-                    color: done ? _teal : context.textMain,
-                    fontSize: 13,
-                    decoration: done ? TextDecoration.lineThrough : null,
-                    decorationColor: _teal,
-                  )),
-              activeColor: _teal,
-              checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-              controlAffinity: ListTileControlAffinity.trailing,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-            );
-          }),
-          const SizedBox(height: 8),
-        ],
+        ),
       ),
     );
   }
@@ -824,127 +624,116 @@ class _GrowthTrackerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: context.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.06),
-            blurRadius: 12, offset: const Offset(0, 4),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(children: [
-                  Icon(Icons.show_chart_rounded, size: 18, color: _purple),
-                  const SizedBox(width: 8),
-                  Text(AppStrings.t('weight_over_time'),
-                      style: TextStyle(
-                          color: context.textMain, fontSize: 14,
-                          fontWeight: FontWeight.w700)),
-                ]),
-                TextButton.icon(
-                  onPressed: onAddEntry,
-                  icon: const Icon(Icons.add_rounded, size: 14),
-                  label: Text(AppStrings.t('add'), style: const TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: _purple,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: _purple, width: 0.5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(children: [
+                      Icon(Icons.show_chart_rounded, size: 18, color: _purple),
+                      const SizedBox(width: 8),
+                      Text(AppStrings.t('weight_over_time'),
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                    ]),
+                    TextButton.icon(
+                      onPressed: onAddEntry,
+                      icon: const Icon(Icons.add_rounded, size: 14),
+                      label: Text(AppStrings.t('add'), style: const TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: _purple,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: const BorderSide(color: _purple, width: 0.5),
+                        ),
+                        backgroundColor: _purple.withValues(alpha: 0.12),
+                      ),
                     ),
-                    backgroundColor: _purple.withValues(alpha: 0.08),
+                  ],
+                ),
+              ),
+              if (entries.length >= 2)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+                  child: SizedBox(
+                    height: 110,
+                    child: CustomPaint(
+                      painter: _GrowthChartPainter(
+                        entries: entries,
+                        weightColor: _purple,
+                        heightColor: _teal,
+                        bgColor: Colors.transparent,
+                      ),
+                      size: Size.infinite,
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // Mini chart
-          if (entries.length >= 2)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
-              child: SizedBox(
-                height: 110,
-                child: CustomPaint(
-                  painter: _GrowthChartPainter(
-                    entries: entries,
-                    weightColor: _purple,
-                    heightColor: _teal,
-                    bgColor: context.bgCard,
+              if (entries.length >= 2)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                  child: Row(children: [
+                    Container(width: 12, height: 3, color: _purple),
+                    const SizedBox(width: 4),
+                    const Text('Weight', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    const SizedBox(width: 12),
+                    Container(width: 12, height: 3, color: _teal),
+                    const SizedBox(width: 4),
+                    const Text('Height', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  ]),
+                ),
+              if (entries.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text('No growth data yet. Tap Add to record an entry.',
+                      style: TextStyle(color: Colors.white54, fontSize: 13)),
+                ),
+              if (entries.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: Column(
+                    children: entries.reversed.take(3).map((e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(children: [
+                        Icon(Icons.circle, size: 8, color: _purple),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${e.date.month}/${e.date.day}/${e.date.year}',
+                          style: const TextStyle(color: Colors.white54, fontSize: 12),
+                        ),
+                        const Spacer(),
+                        Text('${e.weightKg} kg', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                        if (e.heightCm != null) ...[
+                          const SizedBox(width: 12),
+                          Text('${e.heightCm} cm', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                        ],
+                      ]),
+                    )).toList(),
                   ),
-                  size: Size.infinite,
                 ),
-              ),
-            ),
-
-          // Legend row
-          if (entries.length >= 2)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-              child: Row(children: [
-                Container(width: 12, height: 3, color: _purple),
-                const SizedBox(width: 4),
-                Text(AppStrings.t('weight_kg'), style: TextStyle(color: context.textSub, fontSize: 10)),
-                const SizedBox(width: 16),
-                Container(width: 12, height: 3, color: _teal),
-                const SizedBox(width: 4),
-                Text(AppStrings.t('height_cm'), style: TextStyle(color: context.textSub, fontSize: 10)),
-              ]),
-            ),
-
-          // Entries table
-          Divider(color: context.dividerColor, height: 20, indent: 16, endIndent: 16),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-            child: Row(children: [
-              Expanded(child: Text(AppStrings.t('date'), style: TextStyle(color: context.textSub, fontSize: 11, fontWeight: FontWeight.w600))),
-              Text(AppStrings.t('weight_kg'), style: TextStyle(color: _purple, fontSize: 11, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 20),
-              Text(AppStrings.t('height_cm'), style: TextStyle(color: _teal, fontSize: 11, fontWeight: FontWeight.w600)),
-            ]),
+              const SizedBox(height: 8),
+            ],
           ),
-          ...entries.reversed.take(5).map((e) => Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-            child: Row(children: [
-              Icon(Icons.fiber_manual_record_rounded, size: 8, color: _purple.withValues(alpha: 0.6)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '${e.date.month}/${e.date.day}/${e.date.year}',
-                  style: TextStyle(color: context.textSub, fontSize: 12),
-                ),
-              ),
-              Text(
-                '${e.weightKg.toStringAsFixed(1)} kg',
-                style: TextStyle(color: context.textMain, fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                e.heightCm != null ? '${e.heightCm!.toStringAsFixed(1)} cm' : '—',
-                style: TextStyle(color: e.heightCm != null ? _teal : context.textSub, fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-            ]),
-          )),
-          const SizedBox(height: 12),
-        ],
+        ),
       ),
     );
   }
 }
+
 
 // ─────────────────────────────────────────────
 //  Growth Chart Painter
@@ -1111,101 +900,107 @@ class _EditBottomSheetState extends State<_EditBottomSheet> {
     final mq    = MediaQuery.of(context);
     final Color accent = widget.accentColor;
 
-    return Container(
-      margin: EdgeInsets.only(top: mq.padding.top + 24),
-      decoration: BoxDecoration(
-        color: context.bgPage,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-                color: context.dividerColor,
-                borderRadius: BorderRadius.circular(2)),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: accent.withValues(alpha: 0.15),
-                  child: Icon(widget.avatarIcon, size: 20, color: accent),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(widget.title,
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w700,
-                          color: context.textMain)),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Icon(Icons.close_rounded, color: context.textSub),
-                ),
-              ],
-            ),
-          ),
-          Divider(color: context.dividerColor, height: 24),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                  left: 20, right: 20, bottom: mq.viewInsets.bottom + 16),
-              child: Form(
-                key: _formKey,
-                child: Column(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
                   children: [
-                    for (int i = 0; i < widget.fields.length; i++) ...[
-                      _buildField(
-                        context: context,
-                        fieldDef: widget.fields[i],
-                        controller: _controllers[i],
-                        accent: accent,
-                      ),
-                      if (i < widget.fields.length - 1)
-                        const SizedBox(height: 16),
-                    ],
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity, height: 52,
-                      child: ElevatedButton.icon(
-                        onPressed: _save,
-                        icon: const Icon(Icons.check_rounded, size: 18),
-                        label: const Text('Save Changes',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                        ),
-                      ),
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: accent.withValues(alpha: 0.15),
+                      child: Icon(widget.avatarIcon, size: 20, color: accent),
                     ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity, height: 48,
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: TextButton.styleFrom(
-                          foregroundColor: context.textSub,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: const Text('Cancel'),
-                      ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(widget.title,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded, color: Colors.white70),
                     ),
                   ],
                 ),
               ),
-            ),
+              const Divider(color: Colors.white12, height: 24),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                      left: 20, right: 20, bottom: mq.viewInsets.bottom + 16),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        for (int i = 0; i < widget.fields.length; i++) ...[
+                          _buildField(
+                            context: context,
+                            fieldDef: widget.fields[i],
+                            controller: _controllers[i],
+                            accent: accent,
+                          ),
+                          if (i < widget.fields.length - 1)
+                            const SizedBox(height: 16),
+                        ],
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity, height: 52,
+                          child: ElevatedButton.icon(
+                            onPressed: _save,
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            label: const Text('Save Changes',
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: accent,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity, height: 48,
+                          child: TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white70,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1268,14 +1063,14 @@ class _SectionLabel extends StatelessWidget {
         Container(
           width: 4, height: 18,
           decoration: BoxDecoration(
-            color: context.primary,
+            color: _teal,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 8),
         Text(label,
-            style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w700, color: context.textMain)),
+            style: const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
       ],
     );
   }
@@ -1323,98 +1118,379 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: context.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.06),
-            blurRadius: 12, offset: const Offset(0, 4),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Card header ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(children: [
-                  Icon(sectionIcon, size: 18, color: sectionIconColor),
-                  const SizedBox(width: 8),
-                  Text(name,
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700,
-                          color: context.textMain)),
-                ]),
-                _EditButton(accentColor: sectionIconColor, onPressed: onEdit),
-              ],
-            ),
-          ),
-
-          // ── Avatar row ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-            child: Row(
-              children: [
-                Stack(children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: avatarIconColor.withValues(alpha: 0.15),
-                    child: Icon(avatarIcon, size: 30, color: avatarIconColor),
-                  ),
-                  if (showOnlineDot)
-                    Positioned(
-                      right: 0, bottom: 0,
-                      child: Container(
-                        width: 14, height: 14,
-                        decoration: BoxDecoration(
-                          color: _teal, shape: BoxShape.circle,
-                          border: Border.all(color: context.bgCard, width: 2),
-                        ),
-                      ),
-                    ),
-                ]),
-                const SizedBox(width: 14),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Card header ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(name,
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700,
-                            color: context.textMain)),
-                    const SizedBox(height: 4),
-                    subtitleIsChip
-                        ? _ChipLabel(label: subtitle,
-                              color: chipColor ?? context.primary)
-                        : Text(subtitle,
-                              style: TextStyle(
-                                  fontSize: 12, color: context.textSub)),
+                    Icon(sectionIcon, size: 18, color: sectionIconColor),
+                    _EditButton(accentColor: sectionIconColor, onPressed: onEdit),
+                  ],
+                ),
+              ),
+              // ── Avatar row ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                child: Row(
+                  children: [
+                    Stack(children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: avatarIconColor.withValues(alpha: 0.25),
+                        child: Icon(avatarIcon, size: 30, color: avatarIconColor),
+                      ),
+                      if (showOnlineDot)
+                        Positioned(
+                          right: 0, bottom: 0,
+                          child: Container(
+                            width: 14, height: 14,
+                            decoration: BoxDecoration(
+                              color: _teal, shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+                            ),
+                          ),
+                        ),
+                    ]),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name.split(' ').first,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700,
+                                color: Colors.white)),
+                        const SizedBox(height: 4),
+                        subtitleIsChip
+                            ? _ChipLabel(label: subtitle, color: chipColor ?? _teal)
+                            : Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Divider(color: Colors.white.withValues(alpha: 0.15), height: 20, indent: 16, endIndent: 16),
+              // ── Detail rows ──
+              ...details.asMap().entries.map((e) {
+                final isLast = e.key == details.length - 1;
+                final d = e.value;
+                return _DetailRow(icon: d.icon, label: d.label, value: d.value, isLast: isLast);
+              }),
+              const SizedBox(height: 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Growth Entry Dialog
+// ─────────────────────────────────────────────
+class _GrowthEntryDialog extends StatefulWidget {
+  const _GrowthEntryDialog();
+
+  @override
+  State<_GrowthEntryDialog> createState() => _GrowthEntryDialogState();
+}
+
+class _GrowthEntryDialogState extends State<_GrowthEntryDialog> {
+  final weightCtrl = TextEditingController();
+  final heightCtrl = TextEditingController();
+  DateTime selectedDate = DateTime.now();
+
+  @override
+  void dispose() {
+    weightCtrl.dispose();
+    heightCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(AppStrings.t('add_growth_entry'),
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: weightCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: AppStrings.t('weight_kg'),
+                    labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
+                    prefixIcon: const Icon(Icons.monitor_weight_outlined, size: 18, color: _purple),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white24),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: _purple, width: 1.8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: heightCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: AppStrings.t('height_cm'),
+                    labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
+                    prefixIcon: const Icon(Icons.straighten_outlined, size: 18, color: _teal),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.white24),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: _teal, width: 1.8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2025),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) setState(() => selectedDate = picked);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 18, color: _purple),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${selectedDate.month}/${selectedDate.day}/${selectedDate.year}',
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(AppStrings.t('cancel'), style: const TextStyle(color: Colors.white70)),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final kg = double.tryParse(weightCtrl.text);
+                        final cm = double.tryParse(heightCtrl.text);
+                        if (kg != null && kg > 0) {
+                          Navigator.of(context).pop(_GrowthEntry(
+                            date: selectedDate, weightKg: kg, heightCm: cm,
+                          ));
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _purple, foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(AppStrings.t('add')),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
 
-          Divider(color: context.dividerColor, height: 20, indent: 16, endIndent: 16),
+// ─────────────────────────────────────────────
+//  Caregiver Dialog
+// ─────────────────────────────────────────────
+class _CaregiverDialog extends StatefulWidget {
+  const _CaregiverDialog();
 
-          // ── Detail rows ──
-          ...details.asMap().entries.map((e) {
-            final isLast = e.key == details.length - 1;
-            final d = e.value;
-            return _DetailRow(
-              icon: d.icon, label: d.label,
-              value: d.value, isLast: isLast,
-            );
-          }),
-          const SizedBox(height: 4),
-        ],
+  @override
+  State<_CaregiverDialog> createState() => _CaregiverDialogState();
+}
+
+class _CaregiverDialogState extends State<_CaregiverDialog> {
+  final nameCtrl = TextEditingController();
+  final phoneCtrl = TextEditingController();
+  String selectedCaregiver = 'Sarah Jenkins (Nanny)';
+
+  static const List<Map<String, String>> predefinedCaregivers = [
+    {'name': 'Sarah Jenkins (Nanny)', 'phone': '+1 555-0123'},
+    {'name': 'David Smith (Babysitter)', 'phone': '+1 555-0199'},
+    {'name': 'Maria Garcia (Night Nurse)', 'phone': '+1 555-0144'},
+    {'name': 'Emily Davis (Daycare)', 'phone': '+1 555-0188'},
+    {'name': 'Custom...', 'phone': ''},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    nameCtrl.text = predefinedCaregivers.first['name']!;
+    phoneCtrl.text = predefinedCaregivers.first['phone']!;
+  }
+
+  @override
+  void dispose() {
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isCustom = selectedCaregiver == 'Custom...';
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Add Appointed Caregiver',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: selectedCaregiver,
+                  dropdownColor: Colors.black87,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'Select Caregiver',
+                    labelStyle: TextStyle(color: Colors.white70, fontSize: 13),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  ),
+                  items: predefinedCaregivers.map((cg) {
+                    return DropdownMenuItem(
+                      value: cg['name'],
+                      child: Text(cg['name']!),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() {
+                      selectedCaregiver = val;
+                      if (val != 'Custom...') {
+                        final cg = predefinedCaregivers.firstWhere((e) => e['name'] == val);
+                        nameCtrl.text = cg['name']!;
+                        phoneCtrl.text = cg['phone']!;
+                      } else {
+                        nameCtrl.clear();
+                        phoneCtrl.clear();
+                      }
+                    });
+                  },
+                ),
+                if (isCustom) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'Caregiver Name',
+                      labelStyle: TextStyle(color: Colors.white70, fontSize: 13),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      labelStyle: TextStyle(color: Colors.white70, fontSize: 13),
+                      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (nameCtrl.text.isNotEmpty) {
+                          final now = DateTime.now();
+                          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                          final dateStr = '${months[now.month - 1]} ${now.day}, ${now.year}';
+                          Navigator.of(context).pop("${nameCtrl.text}|${phoneCtrl.text}|$dateStr");
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _teal,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Add'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1464,20 +1540,20 @@ class _DetailRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: context.textSub),
+              Icon(icon, size: 18, color: _teal),
               const SizedBox(width: 10),
               Expanded(child: Text(label,
-                  style: TextStyle(fontSize: 13, color: context.textSub))),
+                  style: const TextStyle(fontSize: 13, color: Colors.white70))),
               Expanded(child: Text(value,
                   textAlign: TextAlign.end,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 13, fontWeight: FontWeight.w600,
-                      color: context.textMain))),
+                      color: Colors.white))),
             ],
           ),
         ),
         if (!isLast)
-          Divider(color: context.dividerColor, height: 1, indent: 44),
+          Divider(color: Colors.white.withValues(alpha: 0.1), height: 1, indent: 44),
       ],
     );
   }
@@ -1581,44 +1657,47 @@ class SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        color: context.bgCard,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: data.tappable
-              ? data.iconColor.withValues(alpha: 0.3)
-              : context.dividerColor,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.06),
-            blurRadius: 8, offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(data.title,
-                    style: TextStyle(
-                        fontSize: 11, color: context.textSub, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 4),
-                Text(data.value,
-                    style: TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w800,
-                        color: context.textMain, height: 1.0)),
-              ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+          decoration: BoxDecoration(
+            color: data.tappable
+                ? data.iconColor.withValues(alpha: 0.15)
+                : Colors.white.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: data.tappable
+                  ? data.iconColor.withValues(alpha: 0.4)
+                  : Colors.white.withValues(alpha: 0.15),
             ),
           ),
-          if (data.tappable)
-            Icon(Icons.chevron_right_rounded, size: 16, color: data.iconColor),
-        ],
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(data.title,
+                        style: const TextStyle(
+                            fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 4),
+                    Text(data.value,
+                        style: const TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w800,
+                            color: Colors.white, height: 1.0)),
+                  ],
+                ),
+              ),
+              Icon(data.icon, color: data.iconColor, size: 22),
+              if (data.tappable)
+                Icon(Icons.chevron_right_rounded, size: 16, color: data.iconColor),
+            ],
+          ),
+        ),
       ),
     );
   }
