@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:first_app/screens/theme_ext.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -336,113 +337,122 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: context.bg,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
-        automaticallyImplyLeading: false,
-        toolbarHeight: 64,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(AppStrings.t('alerts'),
-                style: TextStyle(
-                    color: context.textMain,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700)),
-            Text(
-              '${_active.length} ${AppStrings.t('active_count')} · ${_resolved.length} ${AppStrings.t('resolved_count')}',
-              style: TextStyle(color: context.subtext, fontSize: 11),
+    return Stack(
+      children: [
+        SizedBox.expand(
+          child: Image.asset("assets/images/alerts_bg.jpg", fit: BoxFit.cover),
+        ),
+        Container(color: Colors.black.withValues(alpha: 0.72)),
+        Scaffold(
+          resizeToAvoidBottomInset: false,
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            surfaceTintColor: Colors.transparent,
+            automaticallyImplyLeading: false,
+            toolbarHeight: 64,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppStrings.t('alerts'),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700)),
+                Text(
+                  '${_active.length} ${AppStrings.t('active_count')} · ${_resolved.length} ${AppStrings.t('resolved_count')}',
+                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: _showCustomThresholds,
-            icon: Icon(Icons.tune_rounded, color: _orange, size: 20),
-            tooltip: AppStrings.t('custom_thresholds'),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: context.border),
-        ),
-      ),
-      body: ListView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        children: [
-          // ── Active Alerts ──────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _SectionHeader(
-                label: AppStrings.t('active_alerts'),
-                icon: Icons.notifications_active_rounded,
-                iconColor: _red,
+            actions: [
+              IconButton(
+                onPressed: _showCustomThresholds,
+                icon: Icon(Icons.tune_rounded, color: _orange, size: 20),
+                tooltip: AppStrings.t('custom_thresholds'),
               ),
-              if (_active.isNotEmpty)
-                TextButton(
-                  onPressed: _dismissAll,
-                  style: TextButton.styleFrom(
-                    foregroundColor: _red,
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    textStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(height: 1, color: Colors.white24),
+            ),
+          ),
+          body: ListView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            children: [
+              // ── Active Alerts ──────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _SectionHeader(
+                    label: AppStrings.t('active_alerts'),
+                    icon: Icons.notifications_active_rounded,
+                    iconColor: _red,
                   ),
-                  child: Text(AppStrings.t('dismiss_all')),
+                  if (_active.isNotEmpty)
+                    TextButton(
+                      onPressed: _dismissAll,
+                      style: TextButton.styleFrom(
+                        foregroundColor: _red,
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        textStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      child: Text(AppStrings.t('dismiss_all')),
+                    ),
+                ],
+              ),
+              SizedBox(height: 12),
+
+              if (_active.isEmpty)
+                _CalmCard(message: AppStrings.t('calm_message') + ' ' + _calmDuration() + ' ' + AppStrings.t('calm_emoji'))
+              else
+                ...List.generate(
+                  _active.length,
+                  (i) => Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: _AlertCard(
+                      alert: _active[i],
+                      timeAgo: _timeAgo(_active[i].triggeredAt),
+                      onDismiss: () => _dismissAlert(_active[i]),
+                      onSnooze: (m) => _snoozeAlert(_active[i], m),
+                    ),
+                  ),
+                ),
+
+              SizedBox(height: 24),
+
+              // ── Resolved Alerts ────────────────────────
+              _SectionHeader(
+                label: AppStrings.t('resolved_alerts'),
+                icon: Icons.check_circle_outline_rounded,
+                iconColor: _green,
+              ),
+              SizedBox(height: 12),
+
+              if (_resolved.isEmpty)
+                _EmptyCard(
+                  icon: Icons.history_rounded,
+                  color: Colors.white54,
+                  message: AppStrings.t('no_resolved'),
+                )
+              else
+                ...List.generate(
+                  _resolved.length,
+                  (i) => Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: _ResolvedCard(
+                      alert: _resolved[i],
+                      timeAgo: _timeAgo(_resolved[i].triggeredAt),
+                    ),
+                  ),
                 ),
             ],
           ),
-          SizedBox(height: 12),
-
-          if (_active.isEmpty)
-            _CalmCard(message: '${AppStrings.t('calm_message')} ${_calmDuration()} ${AppStrings.t('calm_emoji')}')
-          else
-            ...List.generate(
-              _active.length,
-              (i) => Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: _AlertCard(
-                  alert: _active[i],
-                  timeAgo: _timeAgo(_active[i].triggeredAt),
-                  onDismiss: () => _dismissAlert(_active[i]),
-                  onSnooze: (m) => _snoozeAlert(_active[i], m),
-                ),
-              ),
-            ),
-
-          SizedBox(height: 24),
-
-          // ── Resolved Alerts ────────────────────────
-          _SectionHeader(
-            label: AppStrings.t('resolved_alerts'),
-            icon: Icons.check_circle_outline_rounded,
-            iconColor: _green,
-          ),
-          SizedBox(height: 12),
-
-          if (_resolved.isEmpty)
-            _EmptyCard(
-              icon: Icons.history_rounded,
-              color: context.subtext,
-              message: AppStrings.t('no_resolved'),
-            )
-          else
-            ...List.generate(
-              _resolved.length,
-              (i) => Padding(
-                padding: EdgeInsets.only(bottom: 10),
-                child: _ResolvedCard(
-                  alert: _resolved[i],
-                  timeAgo: _timeAgo(_resolved[i].triggeredAt),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
+        ), // End Scaffold
+      ],
+    ); // End Stack
   }
 }
 
@@ -458,17 +468,17 @@ class _ThresholdField extends StatelessWidget {
     return TextField(
       controller: ctrl,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      style: TextStyle(color: context.textMain, fontSize: 14),
+      style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 12),
+        labelStyle: TextStyle(color: color.withValues(alpha: 0.9), fontSize: 12),
         filled: true,
-        fillColor: context.bg,
+        fillColor: Colors.white.withValues(alpha: 0.08),
         contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: color.withValues(alpha: 0.3))),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: color.withValues(alpha: 0.25))),
+            borderSide: BorderSide(color: color.withValues(alpha: 0.35))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: color, width: 1.5)),
       ),
@@ -483,36 +493,45 @@ class _CalmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _green.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _green.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _green.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.child_care_rounded, color: _green, size: 22),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: _green.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _green.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(color: _green.withValues(alpha: 0.12), blurRadius: 16, spreadRadius: 1),
+            ],
           ),
-          SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                color: _green,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                height: 1.4,
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _green.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.child_care_rounded, color: _green, size: 22),
               ),
-            ),
+              SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -537,90 +556,99 @@ class _AlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _accentColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _accentColor.withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: _accentColor.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _accentColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _accentColor.withValues(alpha: 0.55)),
+            boxShadow: [
+              BoxShadow(
+                color: _accentColor.withValues(alpha: 0.25),
+                blurRadius: 18,
+                spreadRadius: 1,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            _SeverityBadge(severity: alert.severity),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(alert.vitalName,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                _SeverityBadge(severity: alert.severity),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(alert.vitalName,
+                      style: TextStyle(
+                          color: _accentColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                ),
+                Text(timeAgo,
+                    style: TextStyle(color: Colors.white70, fontSize: 11)),
+              ]),
+              SizedBox(height: 8),
+              Text(alert.value,
                   style: TextStyle(
-                      color: _accentColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700)),
-            ),
-            Text(timeAgo,
-                style: TextStyle(color: context.subtext, fontSize: 11)),
-          ]),
-          SizedBox(height: 8),
-          Text(alert.value,
-              style: TextStyle(
-                  color: context.textMain,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800)),
-          SizedBox(height: 6),
-          // ── Threshold label ─────────────────────────
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.info_outline_rounded, size: 12, color: _accentColor.withValues(alpha: 0.8)),
-                SizedBox(width: 6),
-                Text(
-                  '${AppStrings.t('threshold')}: ${alert.thresholdLabel}',
-                  style: TextStyle(
-                    color: _accentColor.withValues(alpha: 0.85),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800)),
+              SizedBox(height: 6),
+              // ── Threshold label ─────────────────────────
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _accentColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 12, color: _accentColor),
+                    SizedBox(width: 6),
+                    Text(
+                      '${AppStrings.t('threshold')}: ${alert.thresholdLabel}',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onDismiss,
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: _accentColor.withValues(alpha: 0.7)),
+                      foregroundColor: Colors.white,
+                      backgroundColor: _accentColor.withValues(alpha: 0.12),
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                    child: Text(AppStrings.t('dismiss'),
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600)),
                   ),
                 ),
-              ],
-            ),
-          ),
-          SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onDismiss,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
-                  foregroundColor: _accentColor,
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: _SnoozeButton(
+                      onSnooze: onSnooze, accentColor: _accentColor),
                 ),
-                child: Text(AppStrings.t('dismiss'),
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
-              ),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: _SnoozeButton(
-                  onSnooze: onSnooze, accentColor: _accentColor),
-            ),
-          ]),
-        ],
+              ]),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -641,47 +669,53 @@ class _SnoozeButtonState extends State<_SnoozeButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 38,
-      decoration: BoxDecoration(
-        color: widget.accentColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: widget.accentColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(children: [
-        Expanded(
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<int>(
-              value: _selected,
-              dropdownColor: context.surface,
-              style: TextStyle(
-                  color: widget.accentColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600),
-              icon: Icon(Icons.expand_more_rounded,
-                  size: 16, color: widget.accentColor),
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              items: [5, 15, 30]
-                  .map((m) => DropdownMenuItem(
-                        value: m,
-                        child: Text('$m min',
-                            style: TextStyle(
-                                color: widget.accentColor, fontSize: 12)),
-                      ))
-                  .toList(),
-              onChanged: (v) => setState(() => _selected = v ?? 5),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          height: 38,
+          decoration: BoxDecoration(
+            color: widget.accentColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: widget.accentColor.withValues(alpha: 0.5)),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: _selected,
+                  dropdownColor: const Color(0xFF1E293B),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
+                  icon: Icon(Icons.expand_more_rounded,
+                      size: 16, color: widget.accentColor),
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  items: [5, 15, 30]
+                      .map((m) => DropdownMenuItem(
+                            value: m,
+                            child: Text('$m min',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12)),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selected = v ?? 5),
+                ),
+              ),
             ),
-          ),
+            GestureDetector(
+              onTap: () => widget.onSnooze(_selected),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(Icons.snooze_rounded,
+                    size: 18, color: widget.accentColor),
+              ),
+            ),
+          ]),
         ),
-        GestureDetector(
-          onTap: () => widget.onSnooze(_selected),
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(Icons.snooze_rounded,
-                size: 18, color: widget.accentColor),
-          ),
-        ),
-      ]),
+      ),
     );
   }
 }
@@ -721,37 +755,43 @@ class _ResolvedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: _green.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _green.withValues(alpha: 0.25)),
-      ),
-      child: Row(children: [
-        Icon(Icons.check_circle_rounded, color: _green, size: 20),
-        SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(alert.vitalName,
-                  style: TextStyle(
-                      color: context.textMain,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600)),
-              Text(alert.value,
-                  style: TextStyle(color: context.subtext, fontSize: 12)),
-              SizedBox(height: 3),
-              Text(
-                '${AppStrings.t('threshold')}: ${alert.thresholdLabel}',
-                style: TextStyle(color: _green.withValues(alpha: 0.7), fontSize: 11),
-              ),
-            ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: _green.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _green.withValues(alpha: 0.4)),
           ),
+          child: Row(children: [
+            Icon(Icons.check_circle_rounded, color: _green, size: 20),
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(alert.vitalName,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                  Text(alert.value,
+                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  SizedBox(height: 3),
+                  Text(
+                    '${AppStrings.t('threshold')}: ${alert.thresholdLabel}',
+                    style: TextStyle(color: _green.withValues(alpha: 0.85), fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            Text(timeAgo, style: TextStyle(color: Colors.white54, fontSize: 11)),
+          ]),
         ),
-        Text(timeAgo, style: TextStyle(color: context.subtext, fontSize: 11)),
-      ]),
+      ),
     );
   }
 }
@@ -771,7 +811,7 @@ class _SectionHeader extends StatelessWidget {
       SizedBox(width: 8),
       Text(label,
           style: TextStyle(
-              color: context.textMain,
+              color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w700)),
     ]);
@@ -788,21 +828,27 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: context.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 20),
-          SizedBox(width: 10),
-          Text(message,
-              style: TextStyle(color: context.subtext, fontSize: 13)),
-        ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 20),
+              SizedBox(width: 10),
+              Text(message,
+                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+            ],
+          ),
+        ),
       ),
     );
   }
