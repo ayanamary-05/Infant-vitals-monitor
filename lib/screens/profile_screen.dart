@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_app/screens/app_strings.dart';
 import 'package:first_app/main.dart' show languageNotifier;
@@ -98,6 +99,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String caregiverAddress   = 'Nairobi, Kenya';
   String caregiverEmergency = 'John Doe · +91 9895072644';
 
+  String _userRole = 'Parent';
+  List<String> _appointedCaregivers = [];
+  
   // ── Growth tracker ─────────────────────────
   List<_GrowthEntry> _growthHistory = [];
 
@@ -142,6 +146,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       caregiverAddress  = prefs.getString('p_caregiverAddress')  ?? caregiverAddress;
       caregiverEmergency = prefs.getString('p_caregiverEmergency') ?? caregiverEmergency;
       nextCheckup       = prefs.getString('p_nextCheckup')       ?? nextCheckup;
+      _userRole         = prefs.getString('user_role')           ?? 'Parent';
+      _appointedCaregivers = prefs.getStringList('p_appointed_caregivers') ?? [];
 
       final entries = prefs.getStringList('p_growthHistory') ?? [];
       _growthHistory = entries.isEmpty
@@ -251,6 +257,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _saveToPrefs();
       },
     );
+  }
+
+
+  void _addCaregiver() async {
+    final predefinedCaregivers = [
+      {'name': 'Sarah Jenkins (Nanny)', 'phone': '+1 555-0123'},
+      {'name': 'David Smith (Babysitter)', 'phone': '+1 555-0199'},
+      {'name': 'Maria Garcia (Night Nurse)', 'phone': '+1 555-0144'},
+      {'name': 'Emily Davis (Daycare)', 'phone': '+1 555-0188'},
+      {'name': 'Custom...', 'phone': ''},
+    ];
+    String selectedCaregiver = predefinedCaregivers.first['name']!;
+    
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    
+    // Initialize controllers with the first predefined caregiver
+    nameCtrl.text = predefinedCaregivers.first['name']!;
+    phoneCtrl.text = predefinedCaregivers.first['phone']!;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final isCustom = selectedCaregiver == 'Custom...';
+          return AlertDialog(
+            backgroundColor: context.bgCard,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('Add Appointed Caregiver', style: TextStyle(color: context.textMain, fontSize: 16)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedCaregiver,
+                    dropdownColor: context.bgCard,
+                    style: TextStyle(color: context.textMain, fontSize: 14),
+                    decoration: InputDecoration(
+                      labelText: 'Select Caregiver',
+                      labelStyle: TextStyle(color: context.textSub, fontSize: 13),
+                    ),
+                    items: predefinedCaregivers.map((cg) {
+                      return DropdownMenuItem(
+                        value: cg['name'],
+                        child: Text(cg['name']!),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedCaregiver = val!;
+                        if (val != 'Custom...') {
+                          final cg = predefinedCaregivers.firstWhere((e) => e['name'] == val);
+                          nameCtrl.text = cg['name']!;
+                          phoneCtrl.text = cg['phone']!;
+                        } else {
+                          nameCtrl.clear();
+                          phoneCtrl.clear();
+                        }
+                      });
+                    },
+                  ),
+                  if (isCustom) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: nameCtrl,
+                      style: TextStyle(color: context.textMain, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Caregiver Name',
+                        labelStyle: TextStyle(color: context.textSub, fontSize: 13),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      style: TextStyle(color: context.textMain, fontSize: 14),
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        labelStyle: TextStyle(color: context.textSub, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(AppStrings.t('cancel'))),
+              ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(AppStrings.t('add'))),
+            ],
+          );
+        }
+      ),
+    );
+    if (result == true && nameCtrl.text.isNotEmpty) {
+      final now = DateTime.now();
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      final dateStr = '${months[now.month - 1]} ${now.day}, ${now.year}';
+      
+      setState(() {
+        _appointedCaregivers.add("${nameCtrl.text}|${phoneCtrl.text}|$dateStr");
+      });
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('p_appointed_caregivers', _appointedCaregivers);
+    }
   }
 
   // ── Add growth entry (weight + optional height) ──────
@@ -497,29 +607,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: 20),
 
-            // ── Caregiver profile ────────────────
-            _SectionLabel(label: AppStrings.t('caregiver_profile')),
+            // ── Role Specific profile ────────────────
+            _SectionLabel(label: _userRole == 'Parent' ? 'Parent Profile' : AppStrings.t('caregiver_profile')),
             const SizedBox(height: 12),
             _ProfileCard(
               sectionIcon: Icons.person_outline_rounded,
               sectionIconColor: _teal,
               avatarIcon: Icons.person_rounded,
               avatarIconColor: _teal,
-              name: caregiverName,
-              subtitle: caregiverRole,
+              name: FirebaseAuth.instance.currentUser?.displayName ?? caregiverName,
+              subtitle: _userRole,
               subtitleIsChip: true,
               chipColor: _teal,
               onEdit: _editCaregiver,
               details: [
-                _DetailData(icon: Icons.person_outline_rounded, label: 'Relationship',      value: caregiverRole),
-                _DetailData(icon: Icons.email_outlined,          label: 'Email',             value: caregiverEmail),
-                _DetailData(icon: Icons.phone_outlined,           label: 'Phone',             value: caregiverPhone),
-                _DetailData(icon: Icons.location_on_outlined,     label: 'Address',           value: caregiverAddress),
-                _DetailData(icon: Icons.emergency_outlined,       label: 'Emergency Contact', value: caregiverEmergency),
+                _DetailData(icon: Icons.person_outline_rounded, label: 'Role',              value: _userRole),
+                _DetailData(icon: Icons.email_outlined,         label: 'Email',             value: FirebaseAuth.instance.currentUser?.email ?? caregiverEmail),
+                _DetailData(icon: Icons.phone_outlined,          label: 'Phone',             value: caregiverPhone),
+                _DetailData(icon: Icons.location_on_outlined,    label: 'Address',           value: caregiverAddress),
+                _DetailData(icon: Icons.emergency_outlined,      label: 'Emergency Contact', value: caregiverEmergency),
               ],
             ),
-
             const SizedBox(height: 20),
+
+            if (_userRole == 'Parent') ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _SectionLabel(label: 'Appointed Caregivers'),
+                  IconButton(
+                    icon: Icon(Icons.add_circle_outline, color: _teal),
+                    onPressed: _addCaregiver,
+                  )
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_appointedCaregivers.isEmpty)
+                Text("No caregivers appointed yet. Tap the + icon to add one.", style: TextStyle(color: context.textSub, fontStyle: FontStyle.italic)),
+              ..._appointedCaregivers.map((c) {
+                final parts = c.split('|');
+                final name = parts[0];
+                final phone = parts.length > 1 ? parts[1] : '';
+                final addedDate = parts.length > 2 ? parts[2] : 'Unknown date';
+                return Card(
+                  color: context.bgCard,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(backgroundColor: _teal.withValues(alpha: 0.2), child: Icon(Icons.person, color: _teal)),
+                    title: Text(name, style: TextStyle(color: context.textMain, fontWeight: FontWeight.bold)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (phone.isNotEmpty) Text(phone, style: TextStyle(color: context.textSub)),
+                        Text('Added on: $addedDate', style: TextStyle(color: context.textSub, fontSize: 11, fontStyle: FontStyle.italic)),
+                      ]
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete_outline, color: _alertRed),
+                      onPressed: () async {
+                        setState(() {
+                          _appointedCaregivers.remove(c);
+                        });
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setStringList('p_appointed_caregivers', _appointedCaregivers);
+                      },
+                    )
+                  ),
+                );
+              }).toList(),
+              const SizedBox(height: 20),
+            ],
 
             // ── Growth Tracker ───────────────────
             _SectionLabel(label: AppStrings.t('growth_tracker')),

@@ -1,19 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:first_app/screens/theme_ext.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_app/screens/vitals_service.dart';
 import 'package:first_app/screens/app_strings.dart';
 import 'package:first_app/main.dart' show tempUnitNotifier, languageNotifier;
 
 // ── Palette ───────────────────────────────────────────────────────────────
-const Color _bg       = Color(0xFF0F172A);
-const Color _surface  = Color(0xFF1E293B);
-const Color _border   = Color(0xFF334155);
-const Color _textMain = Color(0xFFF1F5F9);
-const Color _textSub  = Color(0xFF94A3B8);
-const Color _red      = Color(0xFFFF6B6B);
-const Color _orange   = Color(0xFFFFAB40);
-const Color _green    = Color(0xFF1DB954);
+
+
+
+const Color _red      = const Color(0xFFFF6B6B);
+const Color _orange   = const Color(0xFFFFAB40);
+const Color _green    = const Color(0xFF1DB954);
 
 // ── Alert model ───────────────────────────────────────────────────────────
 enum AlertSeverity { warning, critical }
@@ -231,11 +230,11 @@ class _AlertsScreenState extends State<AlertsScreen> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        content: Text(msg, style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF334155),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
+        margin: EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -254,32 +253,32 @@ class _AlertsScreenState extends State<AlertsScreen> {
       builder: (_) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: Container(
-          margin: const EdgeInsets.all(16),
+          margin: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _surface,
+            color: context.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _border),
+            border: Border.all(color: context.border),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                const Icon(Icons.tune_rounded, color: _orange, size: 20),
-                const SizedBox(width: 10),
+                Icon(Icons.tune_rounded, color: _orange, size: 20),
+                SizedBox(width: 10),
                 Text(AppStrings.t('custom_thresholds'),
-                    style: const TextStyle(color: _textMain, fontSize: 16, fontWeight: FontWeight.w700)),
+                    style: TextStyle(color: context.textMain, fontSize: 16, fontWeight: FontWeight.w700)),
               ]),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               _ThresholdField(ctrl: hrMinCtrl, label: AppStrings.t('hr_min'), color: _red),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _ThresholdField(ctrl: hrMaxCtrl, label: AppStrings.t('hr_max'), color: _red),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _ThresholdField(ctrl: tempMaxCtrl, label: AppStrings.t('temp_max'), color: _orange),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               _ThresholdField(ctrl: spo2MinCtrl, label: AppStrings.t('spo2_min'), color: const Color(0xFF4F8EF7)),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -302,10 +301,10 @@ class _AlertsScreenState extends State<AlertsScreen> {
                     backgroundColor: _orange,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: Text(AppStrings.t('apply'),
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -338,7 +337,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: context.bg,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
@@ -349,31 +348,31 @@ class _AlertsScreenState extends State<AlertsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(AppStrings.t('alerts'),
-                style: const TextStyle(
-                    color: _textMain,
+                style: TextStyle(
+                    color: context.textMain,
                     fontSize: 18,
                     fontWeight: FontWeight.w700)),
             Text(
               '${_active.length} ${AppStrings.t('active_count')} · ${_resolved.length} ${AppStrings.t('resolved_count')}',
-              style: const TextStyle(color: _textSub, fontSize: 11),
+              style: TextStyle(color: context.subtext, fontSize: 11),
             ),
           ],
         ),
         actions: [
           IconButton(
             onPressed: _showCustomThresholds,
-            icon: const Icon(Icons.tune_rounded, color: _orange, size: 20),
+            icon: Icon(Icons.tune_rounded, color: _orange, size: 20),
             tooltip: AppStrings.t('custom_thresholds'),
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: _border),
+          child: Container(height: 1, color: context.border),
         ),
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         children: [
           // ── Active Alerts ──────────────────────────
           Row(
@@ -389,14 +388,14 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   onPressed: _dismissAll,
                   style: TextButton.styleFrom(
                     foregroundColor: _red,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    textStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                   child: Text(AppStrings.t('dismiss_all')),
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           if (_active.isEmpty)
             _CalmCard(message: '${AppStrings.t('calm_message')} ${_calmDuration()} ${AppStrings.t('calm_emoji')}')
@@ -404,7 +403,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
             ...List.generate(
               _active.length,
               (i) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+                padding: EdgeInsets.only(bottom: 12),
                 child: _AlertCard(
                   alert: _active[i],
                   timeAgo: _timeAgo(_active[i].triggeredAt),
@@ -414,7 +413,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
               ),
             ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
 
           // ── Resolved Alerts ────────────────────────
           _SectionHeader(
@@ -422,19 +421,19 @@ class _AlertsScreenState extends State<AlertsScreen> {
             icon: Icons.check_circle_outline_rounded,
             iconColor: _green,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           if (_resolved.isEmpty)
             _EmptyCard(
               icon: Icons.history_rounded,
-              color: _textSub,
+              color: context.subtext,
               message: AppStrings.t('no_resolved'),
             )
           else
             ...List.generate(
               _resolved.length,
               (i) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: EdgeInsets.only(bottom: 10),
                 child: _ResolvedCard(
                   alert: _resolved[i],
                   timeAgo: _timeAgo(_resolved[i].triggeredAt),
@@ -459,13 +458,13 @@ class _ThresholdField extends StatelessWidget {
     return TextField(
       controller: ctrl,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      style: const TextStyle(color: _textMain, fontSize: 14),
+      style: TextStyle(color: context.textMain, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 12),
         filled: true,
-        fillColor: _bg,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        fillColor: context.bg,
+        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
             borderSide: BorderSide(color: color.withValues(alpha: 0.3))),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10),
@@ -485,7 +484,7 @@ class _CalmCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: _green.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
@@ -494,18 +493,18 @@ class _CalmCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: _green.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.child_care_rounded, color: _green, size: 22),
+            child: Icon(Icons.child_care_rounded, color: _green, size: 22),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 color: _green,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -539,7 +538,7 @@ class _AlertCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _accentColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
@@ -557,7 +556,7 @@ class _AlertCard extends StatelessWidget {
         children: [
           Row(children: [
             _SeverityBadge(severity: alert.severity),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: Text(alert.vitalName,
                   style: TextStyle(
@@ -566,18 +565,18 @@ class _AlertCard extends StatelessWidget {
                       fontWeight: FontWeight.w700)),
             ),
             Text(timeAgo,
-                style: const TextStyle(color: _textSub, fontSize: 11)),
+                style: TextStyle(color: context.subtext, fontSize: 11)),
           ]),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(alert.value,
-              style: const TextStyle(
-                  color: _textMain,
+              style: TextStyle(
+                  color: context.textMain,
                   fontSize: 28,
                   fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           // ── Threshold label ─────────────────────────
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: _accentColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
@@ -586,7 +585,7 @@ class _AlertCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.info_outline_rounded, size: 12, color: _accentColor.withValues(alpha: 0.8)),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Text(
                   '${AppStrings.t('threshold')}: ${alert.thresholdLabel}',
                   style: TextStyle(
@@ -598,7 +597,7 @@ class _AlertCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Row(children: [
             Expanded(
               child: OutlinedButton(
@@ -606,16 +605,16 @@ class _AlertCard extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
                   foregroundColor: _accentColor,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: EdgeInsets.symmetric(vertical: 8),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 child: Text(AppStrings.t('dismiss'),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600)),
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: _SnoozeButton(
                   onSnooze: onSnooze, accentColor: _accentColor),
@@ -654,14 +653,14 @@ class _SnoozeButtonState extends State<_SnoozeButton> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<int>(
               value: _selected,
-              dropdownColor: _surface,
+              dropdownColor: context.surface,
               style: TextStyle(
                   color: widget.accentColor,
                   fontSize: 12,
                   fontWeight: FontWeight.w600),
               icon: Icon(Icons.expand_more_rounded,
                   size: 16, color: widget.accentColor),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: EdgeInsets.symmetric(horizontal: 8),
               items: [5, 15, 30]
                   .map((m) => DropdownMenuItem(
                         value: m,
@@ -677,7 +676,7 @@ class _SnoozeButtonState extends State<_SnoozeButton> {
         GestureDetector(
           onTap: () => widget.onSnooze(_selected),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: EdgeInsets.symmetric(horizontal: 8),
             child: Icon(Icons.snooze_rounded,
                 size: 18, color: widget.accentColor),
           ),
@@ -698,7 +697,7 @@ class _SeverityBadge extends StatelessWidget {
     final color = isCritical ? _red : _orange;
     final label = isCritical ? AppStrings.t('critical') : AppStrings.t('warning');
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
@@ -723,27 +722,27 @@ class _ResolvedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: _green.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _green.withValues(alpha: 0.25)),
       ),
       child: Row(children: [
-        const Icon(Icons.check_circle_rounded, color: _green, size: 20),
-        const SizedBox(width: 12),
+        Icon(Icons.check_circle_rounded, color: _green, size: 20),
+        SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(alert.vitalName,
-                  style: const TextStyle(
-                      color: _textMain,
+                  style: TextStyle(
+                      color: context.textMain,
                       fontSize: 13,
                       fontWeight: FontWeight.w600)),
               Text(alert.value,
-                  style: const TextStyle(color: _textSub, fontSize: 12)),
-              const SizedBox(height: 3),
+                  style: TextStyle(color: context.subtext, fontSize: 12)),
+              SizedBox(height: 3),
               Text(
                 '${AppStrings.t('threshold')}: ${alert.thresholdLabel}',
                 style: TextStyle(color: _green.withValues(alpha: 0.7), fontSize: 11),
@@ -751,7 +750,7 @@ class _ResolvedCard extends StatelessWidget {
             ],
           ),
         ),
-        Text(timeAgo, style: const TextStyle(color: _textSub, fontSize: 11)),
+        Text(timeAgo, style: TextStyle(color: context.subtext, fontSize: 11)),
       ]),
     );
   }
@@ -769,10 +768,10 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(children: [
       Icon(icon, size: 16, color: iconColor),
-      const SizedBox(width: 8),
+      SizedBox(width: 8),
       Text(label,
-          style: const TextStyle(
-              color: _textMain,
+          style: TextStyle(
+              color: context.textMain,
               fontSize: 15,
               fontWeight: FontWeight.w700)),
     ]);
@@ -790,19 +789,19 @@ class _EmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _surface,
+        color: context.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border),
+        border: Border.all(color: context.border),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: color, size: 20),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Text(message,
-              style: const TextStyle(color: _textSub, fontSize: 13)),
+              style: TextStyle(color: context.subtext, fontSize: 13)),
         ],
       ),
     );

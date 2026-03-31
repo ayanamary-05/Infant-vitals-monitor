@@ -87,12 +87,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: "LOGIN",
                     backgroundColor: const Color(0xFF1DB954),
                     foregroundColor: Colors.white,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => HomeScreen()),
-                      );
-                    },
+                    onPressed: () => Navigator.push(
+                      context,
+                      _slideUpRoute(const LoginFormScreen()),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _PillButton(
@@ -137,6 +135,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _confirmPasswordObscured = true;
   String? _passwordError;
   bool _isLoading = false;
+  String _selectedRole = 'Parent';
 
   @override
   void dispose() {
@@ -200,6 +199,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       await credential.user?.updateDisplayName('$firstName $lastName');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_role', _selectedRole);
       await credential.user?.sendEmailVerification();
 
       if (!mounted) return;
@@ -300,6 +301,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           ),
                           const SizedBox(height: 36),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _RolePill(
+                                label: "Parent",
+                                isSelected: _selectedRole == 'Parent',
+                                onTap: () => setState(() => _selectedRole = 'Parent'),
+                              ),
+                              const SizedBox(width: 16),
+                              _RolePill(
+                                label: "Caregiver",
+                                isSelected: _selectedRole == 'Caregiver',
+                                onTap: () => setState(() => _selectedRole = 'Caregiver'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
                           _GlassTextField(
                             hintText: "first name",
                             controller: _firstNameController,
@@ -544,6 +562,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _isLoading = false;
+  String _selectedRole = 'Parent';
   bool _passwordObscured = true;
 
   @override
@@ -592,6 +611,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       // Save the remember me preference so AuthWrapper reads it on next cold open
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('remember_me', _rememberMe);
+      await prefs.setString('user_role', _selectedRole);
 
       if (!mounted) return;
 
@@ -704,6 +724,23 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ),
                         ),
                         const SizedBox(height: 36),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _RolePill(
+                              label: "Parent",
+                              isSelected: _selectedRole == 'Parent',
+                              onTap: () => setState(() => _selectedRole = 'Parent'),
+                            ),
+                            const SizedBox(width: 16),
+                            _RolePill(
+                              label: "Caregiver",
+                              isSelected: _selectedRole == 'Caregiver',
+                              onTap: () => setState(() => _selectedRole = 'Caregiver'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
                         _GlassTextField(
                           hintText: "email address",
                           controller: _emailController,
@@ -821,6 +858,36 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+class _RolePill extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  const _RolePill({required this.label, required this.isSelected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF1DB954) : Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: isSelected ? const Color(0xFF1DB954) : Colors.white38),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 14,
+          ),
+        ),
       ),
     );
   }

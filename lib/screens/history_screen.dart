@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:first_app/screens/theme_ext.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
@@ -9,11 +10,9 @@ import 'package:first_app/main.dart' show tempUnitNotifier, languageNotifier;
 import 'package:first_app/screens/app_strings.dart';
 
 // ── Palette ────────────────────────────────────────────────────────────────
-const Color _bg       = Color(0xFF0F172A);
-const Color _surface  = Color(0xFF1E293B);
-const Color _border   = Color(0xFF334155);
-const Color _textMain = Color(0xFFF1F5F9);
-const Color _textSub  = Color(0xFF94A3B8);
+
+
+
 
 // ── Time Range ─────────────────────────────────────────────────────────────
 enum TimeRange { h24, d7, d30 }
@@ -182,31 +181,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void _showExportSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: _surface,
+      backgroundColor: context.surface,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(0, 16, 0, 32),
+        padding: EdgeInsets.fromLTRB(0, 16, 0, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(width: 36, height: 4,
-                decoration: BoxDecoration(color: _border,
+                decoration: BoxDecoration(color: context.border,
                     borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(AppStrings.t('export_title'),
-                style: const TextStyle(color: _textMain, fontSize: 16, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
+                style: TextStyle(color: context.textMain, fontSize: 16, fontWeight: FontWeight.w700)),
+            SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.table_chart_outlined, color: Color(0xFF1DB954)),
+              leading: Icon(Icons.table_chart_outlined, color: const Color(0xFF1DB954)),
               title: Text(AppStrings.t('export_csv'),
-                  style: const TextStyle(color: _textMain, fontWeight: FontWeight.w500)),
+                  style: TextStyle(color: context.textMain, fontWeight: FontWeight.w500)),
               onTap: () { Navigator.pop(context); _exportData(false); },
             ),
             ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined, color: Color(0xFFFF6B6B)),
+              leading: Icon(Icons.picture_as_pdf_outlined, color: const Color(0xFFFF6B6B)),
               title: Text(AppStrings.t('export_pdf'),
-                  style: const TextStyle(color: _textMain, fontWeight: FontWeight.w500)),
+                  style: TextStyle(color: context.textMain, fontWeight: FontWeight.w500)),
               onTap: () { Navigator.pop(context); _exportData(true); },
             ),
           ],
@@ -243,24 +242,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: _surface,
+        backgroundColor: context.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Add Note', style: TextStyle(color: _textMain, fontSize: 16)),
+        title: Text('Add Note', style: TextStyle(color: context.textMain, fontSize: 16)),
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          style: const TextStyle(color: _textMain, fontSize: 14),
+          style: TextStyle(color: context.textMain, fontSize: 14),
           decoration: InputDecoration(
             hintText: 'e.g. after feeding',
-            hintStyle: const TextStyle(color: _textSub),
-            filled: true, fillColor: _bg,
+            hintStyle: TextStyle(color: context.subtext),
+            filled: true, fillColor: context.bg,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _border),
+              borderSide: BorderSide(color: context.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _border),
+              borderSide: BorderSide(color: context.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -272,7 +271,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(null),
-            child: const Text('Cancel', style: TextStyle(color: _textSub)),
+            child: Text('Cancel', style: TextStyle(color: context.subtext)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(ctrl.text.trim()),
@@ -281,7 +280,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Save'),
+            child: Text('Save'),
           ),
         ],
       ),
@@ -311,9 +310,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final displayAvg = displayData.reduce((a, b) => a + b) / displayData.length;
 
         return Scaffold(
-          backgroundColor: _bg,
+          backgroundColor: context.bg,
           appBar: AppBar(
-            backgroundColor: _surface,
+            backgroundColor: context.surface,
             elevation: 0,
             surfaceTintColor: Colors.transparent,
             automaticallyImplyLeading: false,
@@ -322,34 +321,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(AppStrings.t('vitals_history'),
-                    style: const TextStyle(color: _textMain, fontSize: 18,
+                    style: TextStyle(color: context.textMain, fontSize: 18,
                         fontWeight: FontWeight.w700)),
                 Text(AppStrings.t('historical_trends'),
-                    style: const TextStyle(color: _textSub, fontSize: 11)),
+                    style: TextStyle(color: context.subtext, fontSize: 11)),
               ],
             ),
             actions: [
               if (_isExporting)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   child: SizedBox(width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF4F8EF7))),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: const Color(0xFF4F8EF7))),
                 )
               else
                 IconButton(
                   onPressed: _showExportSheet,
-                  icon: const Icon(Icons.ios_share_rounded, color: Color(0xFF4F8EF7), size: 20),
+                  icon: Icon(Icons.ios_share_rounded, color: const Color(0xFF4F8EF7), size: 20),
                   tooltip: AppStrings.t('export'),
                 ),
             ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(1),
-              child: Container(height: 1, color: _border),
+              child: Container(height: 1, color: context.border),
             ),
           ),
           body: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+            padding: EdgeInsets.fromLTRB(16, 20, 16, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -361,7 +360,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     _touchedIndex = null;
                   }),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // ── Time range toggles ─────────────────────
                 _TimeRangeBar(
@@ -372,14 +371,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     _touchedIndex = null;
                   }),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 // ── Chart ──────────────────────────────────
                 Container(
                   decoration: BoxDecoration(
-                    color: _surface,
+                    color: context.surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _border),
+                    border: Border.all(color: context.border),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.25),
@@ -387,7 +386,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -396,24 +395,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         children: [
                           Text(
                             _timeRange.label,
-                            style: const TextStyle(
-                                color: _textSub, fontSize: 12,
+                            style: TextStyle(
+                                color: context.subtext, fontSize: 12,
                                 fontWeight: FontWeight.w500),
                           ),
                           if (_touchedIndex != null)
                             TextButton.icon(
                               onPressed: () => _addAnnotation(_touchedIndex!),
-                              icon: const Icon(Icons.note_add_outlined, size: 14),
-                              label: const Text('Add Note', style: TextStyle(fontSize: 12)),
+                              icon: Icon(Icons.note_add_outlined, size: 14),
+                              label: Text('Add Note', style: TextStyle(fontSize: 12)),
                               style: TextButton.styleFrom(
                                 foregroundColor: _def.color,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                             ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       SizedBox(
                         height: 220,
                         child: GestureDetector(
@@ -442,7 +441,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       // Touched point info
                       if (_touchedIndex != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: EdgeInsets.only(top: 8),
                           child: Row(
                             children: [
                               Container(
@@ -451,7 +450,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   color: _def.color, shape: BoxShape.circle,
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Text(
                                 'Point ${_touchedIndex! + 1}: ${displayData[_touchedIndex!].toStringAsFixed(_dp)} $unitLabel',
                                 style: TextStyle(color: _def.color, fontSize: 12,
@@ -464,9 +463,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                     (a) => a.pointIndex == _touchedIndex).firstOrNull;
                                 return ann != null
                                     ? Text('📝 ${ann.note}',
-                                        style: const TextStyle(
-                                            color: _textSub, fontSize: 11))
-                                    : const SizedBox.shrink();
+                                        style: TextStyle(
+                                            color: context.subtext, fontSize: 11))
+                                    : SizedBox.shrink();
                               }),
                             ],
                           ),
@@ -474,7 +473,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
 
                 // ── Stats ──────────────────────────────────
                 Row(children: [
@@ -483,13 +482,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     value: displayMin.toStringAsFixed(_dp),
                     color: const Color(0xFF4F8EF7),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   _StatCard(
                     label: 'Avg', unit: unitLabel,
                     value: displayAvg.toStringAsFixed(_dp),
                     color: _def.color,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   _StatCard(
                     label: 'Max', unit: unitLabel,
                     value: displayMax.toStringAsFixed(_dp),
@@ -499,28 +498,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                 // ── Annotations list ───────────────────────
                 if (_annotations.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  const Text('Notes',
-                      style: TextStyle(color: _textMain, fontSize: 15,
+                  SizedBox(height: 20),
+                  Text('Notes',
+                      style: TextStyle(color: context.textMain, fontSize: 15,
                           fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   ..._annotations.map((a) => Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    margin: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: _surface,
+                      color: context.surface,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: _border),
+                      border: Border.all(color: context.border),
                     ),
                     child: Row(children: [
                       Icon(Icons.sticky_note_2_outlined,
                           size: 14, color: _def.color),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Text('Point ${a.pointIndex + 1}: ',
                           style: TextStyle(color: _def.color, fontSize: 12,
                               fontWeight: FontWeight.w600)),
                       Text(a.note,
-                          style: const TextStyle(color: _textSub, fontSize: 12)),
+                          style: TextStyle(color: context.subtext, fontSize: 12)),
                     ]),
                   )),
                 ],
@@ -743,9 +742,9 @@ class _VitalTabBar extends StatelessWidget {
     return Container(
       height: 42,
       decoration: BoxDecoration(
-        color: _surface,
+        color: context.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border),
+        border: Border.all(color: context.border),
       ),
       child: Row(
         children: List.generate(_vitalDefs.length, (i) {
@@ -760,12 +759,12 @@ class _VitalTabBar extends StatelessWidget {
                   color: isActive ? def.color : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                margin: const EdgeInsets.all(3),
+                margin: EdgeInsets.all(3),
                 alignment: Alignment.center,
                 child: Text(
                   def.label,
                   style: TextStyle(
-                    color: isActive ? Colors.white : _textSub,
+                    color: isActive ? Colors.white : context.subtext,
                     fontSize: 12, fontWeight: isActive ? FontWeight.w700 : FontWeight.normal,
                   ),
                 ),
@@ -798,18 +797,18 @@ class _TimeRangeBar extends StatelessWidget {
             onTap: () => onTap(r),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               decoration: BoxDecoration(
-                color: isSel ? accentColor.withValues(alpha: 0.15) : _surface,
+                color: isSel ? accentColor.withValues(alpha: 0.15) : context.surface,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSel ? accentColor : _border,
+                  color: isSel ? accentColor : context.border,
                 ),
               ),
               child: Text(
                 r.label,
                 style: TextStyle(
-                  color: isSel ? accentColor : _textSub,
+                  color: isSel ? accentColor : context.subtext,
                   fontSize: 12, fontWeight: isSel ? FontWeight.w700 : FontWeight.normal,
                 ),
               ),
@@ -834,22 +833,22 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: _surface,
+          color: context.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _border),
+          border: Border.all(color: context.border),
         ),
         child: Column(
           children: [
             Text(label,
-                style: const TextStyle(color: _textSub, fontSize: 11)),
-            const SizedBox(height: 4),
+                style: TextStyle(color: context.subtext, fontSize: 11)),
+            SizedBox(height: 4),
             Text(value,
                 style: TextStyle(
                     color: color, fontSize: 22, fontWeight: FontWeight.w800)),
             Text(unit,
-                style: const TextStyle(color: _textSub, fontSize: 10)),
+                style: TextStyle(color: context.subtext, fontSize: 10)),
           ],
         ),
       ),

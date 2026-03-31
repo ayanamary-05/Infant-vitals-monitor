@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:first_app/screens/theme_ext.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:first_app/screens/vitals_service.dart';
@@ -11,14 +13,13 @@ import 'package:first_app/main.dart'
     show tempUnitNotifier, refreshRateNotifier, alertCountNotifier, languageNotifier;
 
 // ── Palette ───────────────────────────────
-const Color kBg      = Color(0xFF0F172A);
-const Color kSurface = Color(0xFF1E293B);
-const Color kGreen   = Color(0xFF1DB954);
-const Color kBlue    = Color(0xFF4F8EF7);
-const Color kOrange  = Color(0xFFFFAB40);
-const Color kRed     = Color(0xFFFF6B6B);
-const Color kSubtext = Color(0xFF94A3B8);
-const Color kTimestamp = Color(0xFFCBD5E1);
+
+
+
+const Color kGreen   = const Color(0xFF1DB954);
+const Color kBlue    = const Color(0xFF4F8EF7);
+const Color kOrange  = const Color(0xFFFFAB40);
+const Color kRed     = const Color(0xFFFF6B6B);
 
 // ══════════════════════════════════════════
 // ROOT — manages bottom nav + SOS overlay
@@ -64,18 +65,18 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Row(
+        content: Row(
           children: [
             Icon(Icons.call_rounded, color: Colors.white, size: 18),
             SizedBox(width: 10),
             Text('Calling John Doe…',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                style: TextStyle(color: context.textMain, fontWeight: FontWeight.w600)),
           ],
         ),
         backgroundColor: kRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.all(16),
+        margin: EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -87,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: languageNotifier.select((l) => l.languageCode),
       builder: (_, __, ___) => Scaffold(
-        backgroundColor: kBg,
+        backgroundColor: context.bg,
         body: Stack(
           children: [
             IndexedStack(index: _tab, children: _tabs),
@@ -116,9 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Center(
                     child: Text(
                       AppStrings.t('sos'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
+                      style: TextStyle(
+                        color: context.textMain, fontSize: 13,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.5,
                       ),
@@ -154,14 +154,22 @@ class _DashboardTabState extends State<_DashboardTab>
   String _babyName = 'Baby Sarah';
 
   String get _greeting {
-    final h = DateTime.now().hour;
+    // Calculate current time in Indian Standard Time (UTC+5:30)
+    final nowUtc = DateTime.now().toUtc();
+    final istTime = nowUtc.add(const Duration(hours: 5, minutes: 30));
+    final h = istTime.hour;
+
     if (h < 12) return AppStrings.t('greeting_morning');
     if (h < 17) return AppStrings.t('greeting_afternoon');
     return AppStrings.t('greeting_evening');
   }
 
   String get _greetingLine {
-    return '$_greeting $_babyName${AppStrings.t('greeting_suffix')}';
+    final user = FirebaseAuth.instance.currentUser;
+    final fullName = user?.displayName ?? 'User';
+    final firstName = fullName.split(' ').first;
+    // Dynamically greets the user safely
+    return '$_greeting $firstName';
   }
 
   @override
@@ -247,38 +255,38 @@ class _DashboardTabState extends State<_DashboardTab>
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        margin: const EdgeInsets.all(16),
+        margin: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: kSurface,
+          color: context.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          border: Border.all(color: context.textMain.withValues(alpha: 0.08)),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: kBlue.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.info_outline_rounded, color: kBlue, size: 20),
+                  child: Icon(Icons.info_outline_rounded, color: kBlue, size: 20),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Text(AppStrings.t('health_score_info'),
-                    style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+                    style: TextStyle(color: context.textMain, fontSize: 17, fontWeight: FontWeight.w700)),
                 const Spacer(),
                 Text('$score/100',
-                    style: const TextStyle(color: kBlue, fontSize: 22, fontWeight: FontWeight.w800)),
+                    style: TextStyle(color: kBlue, fontSize: 22, fontWeight: FontWeight.w800)),
               ]),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Text(AppStrings.t('health_score_desc'),
-                  style: const TextStyle(color: kSubtext, fontSize: 13, height: 1.65)),
-              const SizedBox(height: 20),
+                  style: TextStyle(color: context.subtext, fontSize: 13, height: 1.65)),
+              SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -287,7 +295,7 @@ class _DashboardTabState extends State<_DashboardTab>
                     backgroundColor: kBlue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: Text(AppStrings.t('close')),
                 ),
@@ -323,23 +331,22 @@ class _DashboardTabState extends State<_DashboardTab>
           return SafeArea(
             child: ListView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, 24, 20, 32),
               children: [
                 // ── Greeting ──
                 Text(_greetingLine,
-                    style: const TextStyle(color: kSubtext, fontSize: 14)),
-                const SizedBox(height: 4),
+                    style: TextStyle(color: context.subtext, fontSize: 14)),
+                SizedBox(height: 4),
                 Text(AppStrings.t('infant_monitoring'),
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
+                    style: TextStyle(
+                        color: context.textMain, fontSize: 26,
                         fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 // ── Health status banner ──
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 400),
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: hasAlert
@@ -360,7 +367,7 @@ class _DashboardTabState extends State<_DashboardTab>
                       color: hasAlert ? kRed : kGreen,
                       size: 22,
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,7 +382,7 @@ class _DashboardTabState extends State<_DashboardTab>
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2),
                           Text(
                             hasAlert
                                 ? AppStrings.t('check_readings')
@@ -407,7 +414,7 @@ class _DashboardTabState extends State<_DashboardTab>
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              SizedBox(width: 4),
                               Icon(
                                 Icons.info_outline_rounded,
                                 color: (hasAlert ? kRed : kGreen).withValues(alpha: 0.6),
@@ -428,7 +435,7 @@ class _DashboardTabState extends State<_DashboardTab>
                     ),
                   ]),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 // ── Heart Rate ──
                 _DashboardVitalCard(
@@ -444,7 +451,7 @@ class _DashboardTabState extends State<_DashboardTab>
                   pulseController: _pulseController,
                   showPulse: true,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
 
                 // ── Temperature ──
                 _DashboardVitalCard(
@@ -459,7 +466,7 @@ class _DashboardTabState extends State<_DashboardTab>
                   isRefreshing: _isRefreshing,
                   pulseController: _pulseController,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
 
                 // ── SpO2 ──
                 _DashboardVitalCard(
@@ -508,20 +515,20 @@ class _DashboardVitalCard extends StatelessWidget {
     this.showPulse = false,
   });
 
-  Color get _trendColor {
+  Color _trendColor(BuildContext context) {
     if (trend == '↑') return kRed;
     if (trend == '↓') return kBlue;
-    return kSubtext;
+    return context.subtext;
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: kSurface,
+        color: context.surface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(color: context.textMain.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(
             color: color.withValues(alpha: 0.08),
@@ -564,21 +571,20 @@ class _DashboardVitalCard extends StatelessWidget {
                   )
                 : _iconCircle(),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           // Label + range + prominent timestamp
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
+                    style: TextStyle(
+                        color: context.textMain, fontSize: 15,
                         fontWeight: FontWeight.w600)),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(normalRange,
-                    style: const TextStyle(color: kSubtext, fontSize: 11)),
-                const SizedBox(height: 6),
+                    style: TextStyle(color: context.subtext, fontSize: 11)),
+                SizedBox(height: 6),
                 // Prominent timestamp pill
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
@@ -587,27 +593,27 @@ class _DashboardVitalCard extends StatelessWidget {
                           key: const ValueKey('updating'),
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const SizedBox(
+                            SizedBox(
                               width: 10,
                               height: 10,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 1.5, color: kSubtext),
+                                  strokeWidth: 1.5, color: context.subtext),
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Text(
                               AppStrings.t('updating'),
-                              style: const TextStyle(color: kSubtext, fontSize: 11),
+                              style: TextStyle(color: context.subtext, fontSize: 11),
                             ),
                           ],
                         )
                       : Container(
                           key: const ValueKey('timestamp'),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
+                            color: context.textMain.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.10),
+                              color: context.textMain.withValues(alpha: 0.10),
                             ),
                           ),
                           child: Row(
@@ -615,11 +621,11 @@ class _DashboardVitalCard extends StatelessWidget {
                             children: [
                               Icon(Icons.access_time_rounded,
                                   size: 11, color: color.withValues(alpha: 0.8)),
-                              const SizedBox(width: 4),
+                              SizedBox(width: 4),
                               Text(
                                 '${AppStrings.t('updated')} $lastUpdated',
                                 style: TextStyle(
-                                  color: kTimestamp,
+                                  color: context.subtext,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -640,21 +646,20 @@ class _DashboardVitalCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(value,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 30,
+                      style: TextStyle(
+                          color: context.textMain, fontSize: 30,
                           fontWeight: FontWeight.bold,
                           height: 1.0)),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   Text(trend,
                       style: TextStyle(
-                          color: _trendColor,
+                          color: _trendColor(context),
                           fontSize: 16,
                           fontWeight: FontWeight.w700)),
                 ],
               ),
               Text(unit,
-                  style: const TextStyle(color: kSubtext, fontSize: 12)),
+                  style: TextStyle(color: context.subtext, fontSize: 12)),
             ],
           ),
         ],
@@ -704,10 +709,10 @@ class _BottomNav extends StatelessWidget {
       valueListenable: alertCountNotifier,
       builder: (_, alertCount, __) => Container(
         decoration: BoxDecoration(
-          color: kSurface,
+          color: context.surface,
           border: Border(
               top: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.08))),
+                  color: context.textMain.withValues(alpha: 0.08))),
         ),
         child: SafeArea(
           top: false,
@@ -733,7 +738,7 @@ class _BottomNav extends StatelessWidget {
                               child: Icon(
                                 sel ? filled : outlined,
                                 key: ValueKey(sel),
-                                color: sel ? kGreen : kSubtext,
+                                color: sel ? kGreen : context.subtext,
                                 size: 22,
                               ),
                             ),
@@ -742,16 +747,15 @@ class _BottomNav extends StatelessWidget {
                                 top: -4,
                                 right: -6,
                                 child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: const BoxDecoration(
+                                  padding: EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
                                     color: kRed,
                                     shape: BoxShape.circle,
                                   ),
                                   child: Text(
                                     '$alertCount',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
+                                    style: TextStyle(
+                                      color: context.textMain, fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -759,11 +763,11 @@ class _BottomNav extends StatelessWidget {
                               ),
                           ],
                         ),
-                        const SizedBox(height: 3),
+                        SizedBox(height: 3),
                         AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
                           style: TextStyle(
-                            color: sel ? kGreen : kSubtext,
+                            color: sel ? kGreen : context.subtext,
                             fontSize: 10,
                             fontWeight: sel
                                 ? FontWeight.w600

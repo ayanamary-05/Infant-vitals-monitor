@@ -1,0 +1,26 @@
+﻿Analyzing 3 items...                                            
+
+   info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:19:24 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:20:24 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:21:24 - unnecessary_const
+   info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:22:24 - unnecessary_const
+   info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:90:20 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:90:24 - unnecessary_underscores
+warning - The value of the field '_babyName' isn't used - lib\screens\home_screen.dart:154:10 - unused_field
+   info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:309:23 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:311:32 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:705:32 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:21:24 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:21:28 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:22:42 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:243:24 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:243:28 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:244:42 - unnecessary_underscores
+   info - The private field _selectedRole could be 'final' - lib\screens\login_screen.dart:565:10 - prefer_final_fields
+warning - The value of the field '_selectedRole' isn't used - lib\screens\login_screen.dart:565:10 - unused_field
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:666:24 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:666:28 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:667:42 - unnecessary_underscores
+   info - Use interpolation to compose strings and values - lib\screens\profile_screen.dart:303:34 - prefer_interpolation_to_compose_strings
+   info - Unnecessary use of 'toList' in a spread - lib\screens\profile_screen.dart:614:18 - unnecessary_to_list_in_spreads
+
