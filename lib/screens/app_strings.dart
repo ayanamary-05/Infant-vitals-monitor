@@ -1,7 +1,7 @@
 // app_strings.dart — Lightweight i18n string map
 // Screens read strings via AppStrings.t(key) using the current languageNotifier locale.
 
-import 'package:flutter/material.dart';
+
 import 'package:first_app/main.dart' show languageNotifier;
 
 class AppStrings {

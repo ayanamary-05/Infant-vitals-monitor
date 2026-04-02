@@ -1,0 +1,20 @@
+﻿Analyzing Infant-vitals-monitor...
+
+  error - lib\screens\home_screen.dart:216:33 - Undefined name '_babyName'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+warning - lib\screens\alerts_screen.dart:48:10 - A value for optional parameter 'hrMin' isn't ever given. Try removing the unused parameter. - unused_element_parameter
+warning - lib\screens\alerts_screen.dart:49:10 - A value for optional parameter 'hrMax' isn't ever given. Try removing the unused parameter. - unused_element_parameter
+warning - lib\screens\alerts_screen.dart:50:10 - A value for optional parameter 'tempMax' isn't ever given. Try removing the unused parameter. - unused_element_parameter
+warning - lib\screens\alerts_screen.dart:51:10 - A value for optional parameter 'spo2Min' isn't ever given. Try removing the unused parameter. - unused_element_parameter
+warning - lib\screens\alerts_screen.dart:858:12 - The declaration '_bodyTemperature' isn't referenced. Try removing the declaration of '_bodyTemperature'. - unused_element
+warning - lib\screens\alerts_screen.dart:859:12 - The declaration '_oxygenSaturation' isn't referenced. Try removing the declaration of '_oxygenSaturation'. - unused_element
+warning - lib\screens\alerts_screen.dart:860:12 - The declaration '_heartRate' isn't referenced. Try removing the declaration of '_heartRate'. - unused_element
+warning - lib\screens\profile_screen.dart:23:13 - The declaration 'bgPage' isn't referenced. Try removing the declaration of 'bgPage'. - unused_element
+warning - lib\screens\profile_screen.dart:29:13 - The declaration 'isDark' isn't referenced. Try removing the declaration of 'isDark'. - unused_element
+warning - lib\screens\settings_screen.dart:16:13 - The declaration 'bgPage' isn't referenced. Try removing the declaration of 'bgPage'. - unused_element
+warning - lib\screens\settings_screen.dart:17:13 - The declaration 'bgCard' isn't referenced. Try removing the declaration of 'bgCard'. - unused_element
+warning - lib\screens\settings_screen.dart:18:13 - The declaration 'textMain' isn't referenced. Try removing the declaration of 'textMain'. - unused_element
+warning - lib\screens\settings_screen.dart:19:13 - The declaration 'textSub' isn't referenced. Try removing the declaration of 'textSub'. - unused_element
+warning - lib\screens\settings_screen.dart:20:13 - The declaration 'dividerClr' isn't referenced. Try removing the declaration of 'dividerClr'. - unused_element
+warning - lib\screens\settings_screen.dart:22:13 - The declaration 'isDark' isn't referenced. Try removing the declaration of 'isDark'. - unused_element
+
+16 issues found.

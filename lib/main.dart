@@ -10,7 +10,8 @@ final themeModeNotifier    = ValueNotifier<ThemeMode>(ThemeMode.dark);
 final languageNotifier     = ValueNotifier<Locale>(const Locale('en'));
 final tempUnitNotifier     = ValueNotifier<String>('Celsius');      // 'Celsius' | 'Fahrenheit'
 final refreshRateNotifier  = ValueNotifier<int>(3);                 // seconds
-final alertCountNotifier   = ValueNotifier<int>(0);                 // active alert count
+final alertCountNotifier      = ValueNotifier<int>(0);                 // active alert count
+final criticalAlertNotifier   = ValueNotifier<bool>(false);            // true while full-screen alarm is shown
 
 // ─────────────────────────────────────────────
 //  Supported locales
@@ -46,9 +47,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeModeNotifier,
-      builder: (_, mode, __) => ValueListenableBuilder<Locale>(
+      builder: (context, mode, child1) => ValueListenableBuilder<Locale>(
         valueListenable: languageNotifier,
-        builder: (_, locale, __) {
+        builder: (context, locale, child2) {
           final isRtl = locale.languageCode == 'ar';
           return Directionality(
             textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,

@@ -19,8 +19,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 520),
       reverseTransitionDuration: const Duration(milliseconds: 420),
-      pageBuilder: (_, __, ___) => page,
-      transitionsBuilder: (_, animation, __, child) {
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(0.0, 1.0);
         const end = Offset.zero;
         const curve = Curves.easeInOutQuart;
@@ -252,8 +252,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 520),
       reverseTransitionDuration: const Duration(milliseconds: 420),
-      pageBuilder: (_, __, ___) => page,
-      transitionsBuilder: (_, animation, __, child) {
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(0.0, 1.0);
         const end = Offset.zero;
         const curve = Curves.easeInOutQuart;
@@ -680,8 +680,8 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     return PageRouteBuilder(
       transitionDuration: const Duration(milliseconds: 520),
       reverseTransitionDuration: const Duration(milliseconds: 420),
-      pageBuilder: (_, __, ___) => page,
-      transitionsBuilder: (_, animation, __, child) {
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(0.0, 1.0);
         const end = Offset.zero;
         const curve = Curves.easeInOutQuart;

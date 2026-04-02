@@ -228,7 +228,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               pw.Text('Date: $dateStr  |  Range: ${_timeRange.label}  |  Unit: $unitLabel',
                   style: const pw.TextStyle(fontSize: 12)),
               pw.SizedBox(height: 16),
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 headers: ['#', 'Value ($unitLabel)'],
                 data: List.generate(displayData.length,
                     (i) => [(i + 1).toString(), displayData[i].toStringAsFixed(_dp)]),
@@ -346,7 +346,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: tempUnitNotifier,
-      builder: (_, tempUnit, __) {
+      builder: (context, tempUnit, child) {
         final isFahrenheit = tempUnit == 'Fahrenheit';
         final rawData = _data;
         final displayData = rawData.map((v) =>

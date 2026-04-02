@@ -11,9 +11,9 @@ import 'package:first_app/main.dart' show tempUnitNotifier, languageNotifier;
 
 
 
-const Color _red      = const Color(0xFFFF6B6B);
-const Color _orange   = const Color(0xFFFFAB40);
-const Color _green    = const Color(0xFF1DB954);
+const Color _red      = Color(0xFFFF6B6B);
+const Color _orange   = Color(0xFFFFAB40);
+const Color _green    = Color(0xFF1DB954);
 
 // ── Alert model ───────────────────────────────────────────────────────────
 enum AlertSeverity { warning, critical }
@@ -40,16 +40,10 @@ class VitalAlert {
 
 // ── Custom thresholds model ────────────────────────────────────────────────
 class _AlertThresholds {
-  double hrMin;
-  double hrMax;
-  double tempMax;
-  double spo2Min;
-  _AlertThresholds({
-    this.hrMin = 100,
-    this.hrMax = 160,
-    this.tempMax = 38.0,
-    this.spo2Min = 94,
-  });
+  double hrMin = 100;
+  double hrMax = 160;
+  double tempMax = 38.0;
+  double spo2Min = 94;
 }
 
 // ── AlertsScreen ──────────────────────────────────────────────────────────
@@ -406,7 +400,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
               SizedBox(height: 12),
 
               if (_active.isEmpty)
-                _CalmCard(message: AppStrings.t('calm_message') + ' ' + _calmDuration() + ' ' + AppStrings.t('calm_emoji'))
+                _CalmCard(message: '${AppStrings.t('calm_message')} ${_calmDuration()} ${AppStrings.t('calm_emoji')}')
               else
                 ...List.generate(
                   _active.length,
@@ -854,7 +848,3 @@ class _EmptyCard extends StatelessWidget {
   }
 }
 
-// expose body temp & oxygen labels for app_strings references
-String get _body_temperature => AppStrings.t('body_temperature');
-String get _oxygen_saturation => AppStrings.t('oxygen_saturation');
-String get _heart_rate => AppStrings.t('heart_rate');

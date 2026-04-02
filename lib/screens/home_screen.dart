@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:ui';
 import 'package:first_app/screens/theme_ext.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 import 'package:first_app/screens/vitals_service.dart';
 import 'package:first_app/screens/history_screen.dart';
@@ -11,16 +11,18 @@ import 'package:first_app/screens/settings_screen.dart';
 import 'package:first_app/screens/profile_screen.dart';
 import 'package:first_app/screens/app_strings.dart';
 import 'package:first_app/main.dart'
-    show tempUnitNotifier, refreshRateNotifier, alertCountNotifier, languageNotifier;
+    show tempUnitNotifier, refreshRateNotifier, alertCountNotifier, languageNotifier, criticalAlertNotifier;
+import 'package:first_app/screens/critical_alert_overlay.dart';
+
 
 // ── Palette ───────────────────────────────
 
 
 
-const Color kGreen   = const Color(0xFF1DB954);
-const Color kBlue    = const Color(0xFF4F8EF7);
-const Color kOrange  = const Color(0xFFFFAB40);
-const Color kRed     = const Color(0xFFFF6B6B);
+const Color kGreen   = Color(0xFF1DB954);
+const Color kBlue    = Color(0xFF4F8EF7);
+const Color kOrange  = Color(0xFFFFAB40);
+const Color kRed     = Color(0xFFFF6B6B);
 
 // ══════════════════════════════════════════
 // ROOT — manages bottom nav + SOS overlay
@@ -48,15 +50,24 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
     startVitalsSimulation(refreshRateNotifier.value);
     refreshRateNotifier.addListener(_onRefreshRateChanged);
+    criticalVitalsNotifier.addListener(_onCriticalVitals);
   }
 
   void _onRefreshRateChanged() {
     startVitalsSimulation(refreshRateNotifier.value);
   }
 
+  void _onCriticalVitals() {
+    if (criticalVitalsNotifier.value.isNotEmpty &&
+        !criticalAlertNotifier.value) {
+      criticalAlertNotifier.value = true;
+    }
+  }
+
   @override
   void dispose() {
     refreshRateNotifier.removeListener(_onRefreshRateChanged);
+    criticalVitalsNotifier.removeListener(_onCriticalVitals);
     stopVitalsSimulation();
     super.dispose();
   }
@@ -88,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: languageNotifier.select((l) => l.languageCode),
-      builder: (_, __, ___) => Scaffold(
+      builder: (context, languageCode, child) => Scaffold(
         backgroundColor: context.bg,
         body: Stack(
           children: [
@@ -128,6 +139,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+            // ── Critical Alert Overlay ──────────────────────
+            ValueListenableBuilder<bool>(
+              valueListenable: criticalAlertNotifier,
+              builder: (context, isActive, child) {
+                if (!isActive) return const SizedBox.shrink();
+                return const Positioned.fill(
+                  child: CriticalAlertOverlay(),
+                );
+              },
+            ),
           ],
         ),
         bottomNavigationBar: _BottomNav(
@@ -152,7 +173,7 @@ class _DashboardTabState extends State<_DashboardTab>
     with TickerProviderStateMixin {
   bool _isRefreshing = false;
   late AnimationController _pulseController;
-  String _babyName = 'Baby Sarah';
+
 
   String get _greeting {
     // Calculate current time in Indian Standard Time (UTC+5:30)
@@ -181,7 +202,6 @@ class _DashboardTabState extends State<_DashboardTab>
       duration: const Duration(milliseconds: 1200),
     )..repeat();
     vitalsNotifier.addListener(_onVitalsUpdate);
-    _loadBabyName();
     languageNotifier.addListener(_rebuild);
   }
 
@@ -189,11 +209,7 @@ class _DashboardTabState extends State<_DashboardTab>
     if (mounted) setState(() {});
   }
 
-  Future<void> _loadBabyName() async {
-    final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString('p_infantName') ?? 'Baby Sarah';
-    if (mounted) setState(() => _babyName = name);
-  }
+
 
   void _onVitalsUpdate() {
     if (!mounted) return;
@@ -312,9 +328,9 @@ class _DashboardTabState extends State<_DashboardTab>
   Widget build(BuildContext context) {
     return ValueListenableBuilder<VitalsState>(
       valueListenable: vitalsNotifier,
-      builder: (_, v, __) => ValueListenableBuilder<String>(
+      builder: (context, v, childR1) => ValueListenableBuilder<String>(
         valueListenable: tempUnitNotifier,
-        builder: (_, tempUnit, __) {
+        builder: (context, tempUnit, childR2) {
           final isFahrenheit = tempUnit == 'Fahrenheit';
           final displayTemp = isFahrenheit ? v.temp * 9 / 5 + 32 : v.temp;
           final tempStr = displayTemp.toStringAsFixed(1);
@@ -730,7 +746,7 @@ class _BottomNav extends StatelessWidget {
 
     return ValueListenableBuilder<int>(
       valueListenable: alertCountNotifier,
-      builder: (_, alertCount, __) => Container(
+      builder: (context, alertCount, child) => Container(
         decoration: BoxDecoration(
           color: context.surface,
           border: Border(

@@ -20,13 +20,11 @@ const _purple    = Color(0xFFA78BFA);
 extension _AppTheme on BuildContext {
   ColorScheme get cs     => Theme.of(this).colorScheme;
   TextTheme   get tt     => Theme.of(this).textTheme;
-  Color get bgPage       => Theme.of(this).scaffoldBackgroundColor;
   Color get bgCard       => cs.surface;
   Color get textMain     => tt.bodyLarge?.color    ?? cs.onSurface;
   Color get textSub      => tt.bodySmall?.color    ?? cs.onSurfaceVariant;
   Color get dividerColor => Theme.of(this).dividerColor;
   Color get primary      => cs.primary;
-  bool  get isDark       => Theme.of(this).brightness == Brightness.dark;
 }
 
 // ─────────────────────────────────────────────
@@ -485,7 +483,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 20),
                 ],
                 _SectionLabel(label: AppStrings.t('growth_tracker')),
@@ -1408,7 +1406,7 @@ class _CaregiverDialogState extends State<_CaregiverDialog> {
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 20),
                 DropdownButtonFormField<String>(
-                  value: selectedCaregiver,
+                  initialValue: selectedCaregiver,
                   dropdownColor: Colors.black87,
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                   decoration: const InputDecoration(

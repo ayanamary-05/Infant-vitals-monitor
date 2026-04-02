@@ -1,62 +1,124 @@
 ﻿Analyzing Infant-vitals-monitor...                              
 
+
+
    info - Unnecessary use of multiple underscores - lib\main.dart:50:26 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\main.dart:52:30 - unnecessary_underscores
+
    info - Unnecessary 'const' keyword - lib\screens\alerts_screen.dart:14:25 - unnecessary_const
+
    info - Unnecessary 'const' keyword - lib\screens\alerts_screen.dart:15:25 - unnecessary_const
+
    info - Unnecessary 'const' keyword - lib\screens\alerts_screen.dart:16:25 - unnecessary_const
+
 warning - A value for optional parameter 'hrMin' isn't ever given - lib\screens\alerts_screen.dart:48:10 - unused_element_parameter
+
 warning - A value for optional parameter 'hrMax' isn't ever given - lib\screens\alerts_screen.dart:49:10 - unused_element_parameter
+
 warning - A value for optional parameter 'tempMax' isn't ever given - lib\screens\alerts_screen.dart:50:10 - unused_element_parameter
+
 warning - A value for optional parameter 'spo2Min' isn't ever given - lib\screens\alerts_screen.dart:51:10 - unused_element_parameter
+
    info - Use interpolation to compose strings and values - lib\screens\alerts_screen.dart:409:36 - prefer_interpolation_to_compose_strings
+
    info - Use interpolation to compose strings and values - lib\screens\alerts_screen.dart:409:73 - prefer_interpolation_to_compose_strings
+
    info - The variable name '_body_temperature' isn't a lowerCamelCase identifier - lib\screens\alerts_screen.dart:858:12 - non_constant_identifier_names
+
 warning - The declaration '_body_temperature' isn't referenced - lib\screens\alerts_screen.dart:858:12 - unused_element
+
    info - The variable name '_oxygen_saturation' isn't a lowerCamelCase identifier - lib\screens\alerts_screen.dart:859:12 - non_constant_identifier_names
+
 warning - The declaration '_oxygen_saturation' isn't referenced - lib\screens\alerts_screen.dart:859:12 - unused_element
+
    info - The variable name '_heart_rate' isn't a lowerCamelCase identifier - lib\screens\alerts_screen.dart:860:12 - non_constant_identifier_names
+
 warning - The declaration '_heart_rate' isn't referenced - lib\screens\alerts_screen.dart:860:12 - unused_element
+
 warning - Unused import: 'package:flutter/material.dart' - lib\screens\app_strings.dart:4:8 - unused_import
+
    info - Unnecessary use of multiple underscores - lib\screens\critical_alert_overlay.dart:331:28 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\critical_alert_overlay.dart:334:37 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\critical_alert_overlay.dart:368:30 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\critical_alert_overlay.dart:507:52 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\critical_alert_overlay.dart:560:54 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\critical_alert_overlay.dart:611:48 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\critical_alert_overlay.dart:740:26 - unnecessary_underscores
+
    info - 'Table.fromTextArray' is deprecated and shouldn't be used. Use TableHelper.fromTextArray() instead - lib\screens\history_screen.dart:231:15 - deprecated_member_use
+
    info - Unnecessary use of multiple underscores - lib\screens\history_screen.dart:349:30 - unnecessary_underscores
+
    info - The import of 'package:first_app/screens/vitals_service.dart' is unnecessary because all of the used elements are also provided by the import of 'package:first_app/screens/vitals_service.dart' - lib\screens\home_screen.dart:16:8 - unnecessary_import
+
    info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:22:24 - unnecessary_const
+
    info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:23:24 - unnecessary_const
+
    info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:24:24 - unnecessary_const
+
    info - Unnecessary 'const' keyword - lib\screens\home_screen.dart:25:24 - unnecessary_const
+
    info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:102:20 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:102:24 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:145:38 - unnecessary_underscores
+
 warning - The value of the field '_babyName' isn't used - lib\screens\home_screen.dart:176:10 - unused_field
+
    info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:336:23 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:338:32 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\home_screen.dart:754:32 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:22:24 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:22:28 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:23:42 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:255:24 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:255:28 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:256:42 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:683:24 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:683:28 - unnecessary_underscores
+
    info - Unnecessary use of multiple underscores - lib\screens\login_screen.dart:684:42 - unnecessary_underscores
+
 warning - The declaration 'bgPage' isn't referenced - lib\screens\profile_screen.dart:23:13 - unused_element
+
 warning - The declaration 'isDark' isn't referenced - lib\screens\profile_screen.dart:29:13 - unused_element
+
    info - Unnecessary use of 'toList' in a spread - lib\screens\profile_screen.dart:488:22 - unnecessary_to_list_in_spreads
+
    info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\screens\profile_screen.dart:1411:19 - deprecated_member_use
+
 warning - The declaration 'bgPage' isn't referenced - lib\screens\settings_screen.dart:16:13 - unused_element
+
 warning - The declaration 'bgCard' isn't referenced - lib\screens\settings_screen.dart:17:13 - unused_element
+
 warning - The declaration 'textMain' isn't referenced - lib\screens\settings_screen.dart:18:13 - unused_element
+
 warning - The declaration 'textSub' isn't referenced - lib\screens\settings_screen.dart:19:13 - unused_element
+
 warning - The declaration 'dividerClr' isn't referenced - lib\screens\settings_screen.dart:20:13 - unused_element
+
 warning - The declaration 'isDark' isn't referenced - lib\screens\settings_screen.dart:22:13 - unused_element
+
    info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\screens\settings_screen.dart:474:13 - deprecated_member_use
+
+
 

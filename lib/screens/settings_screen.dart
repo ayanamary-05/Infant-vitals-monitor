@@ -13,13 +13,7 @@ import 'package:first_app/screens/app_strings.dart';
 // ─────────────────────────────────────────────
 extension _AppTheme on BuildContext {
   ColorScheme get cs   => Theme.of(this).colorScheme;
-  Color get bgPage     => Theme.of(this).scaffoldBackgroundColor;
-  Color get bgCard     => cs.surface;
-  Color get textMain   => Theme.of(this).textTheme.bodyLarge?.color ?? cs.onSurface;
-  Color get textSub    => Theme.of(this).textTheme.bodySmall?.color ?? cs.onSurfaceVariant;
-  Color get dividerClr => Theme.of(this).dividerColor;
   Color get primary    => cs.primary;
-  bool  get isDark     => Theme.of(this).brightness == Brightness.dark;
 }
 
 const _green  = Color(0xFF1DB954);
@@ -471,7 +465,7 @@ class _ToggleTile extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeTrackColor: (activeColor ?? _green).withValues(alpha: 0.5),
-            activeColor: activeColor ?? _green,
+            activeThumbColor: activeColor ?? _green,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ),

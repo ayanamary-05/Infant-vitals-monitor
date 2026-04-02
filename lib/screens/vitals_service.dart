@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
-import 'package:first_app/main.dart' show alertCountNotifier;
+import 'package:first_app/main.dart' show alertCountNotifier, criticalAlertNotifier;
 
 // ── Simulated vitals state ──────────────────────────────────────────────────
 class VitalsState {
@@ -28,12 +28,19 @@ final vitalsNotifier = ValueNotifier<VitalsState>(
   VitalsState(lastUpdated: DateTime.now()),
 );
 
+// ── Critical vitals notifier — list of out-of-range vital names ─────────────
+// e.g. ['Heart Rate', 'SpO₂'] when those two are critical
+final criticalVitalsNotifier = ValueNotifier<List<String>>([]);
+
 Timer? _vitalsTimer;
 
 void startVitalsSimulation(int intervalSeconds) {
   _vitalsTimer?.cancel();
   final rng = math.Random();
   _vitalsTimer = Timer.periodic(Duration(seconds: intervalSeconds), (_) {
+    // Pause simulation while the critical alert overlay is visible
+    if (criticalAlertNotifier.value) return;
+
     final current = vitalsNotifier.value;
     final newHr   = (current.hr   + (rng.nextDouble() - 0.48) * 4).clamp(80.0, 190.0);
     final newTemp = (current.temp + (rng.nextDouble() - 0.48) * 0.1).clamp(35.0, 41.0);
@@ -52,11 +59,20 @@ void startVitalsSimulation(int intervalSeconds) {
 void stopVitalsSimulation() => _vitalsTimer?.cancel();
 
 void _checkAlerts(double hr, double temp, double spo2) {
-  int count = 0;
-  if (hr > 160 || hr < 100) count++;
-  if (temp > 38.0) count++;
-  if (spo2 < 94) count++;
-  alertCountNotifier.value = count;
+  // Build list of out-of-range vital names
+  final List<String> critical = [];
+  if (hr > 160 || hr < 100) critical.add('Heart Rate');
+  if (temp > 38.0)           critical.add('Body Temperature');
+  if (spo2 < 94)             critical.add('SpO₂');
+
+  alertCountNotifier.value = critical.length;
+
+  // Only raise the critical notifier when new critical vitals appear
+  // (don't overwrite if already showing — the overlay reads the latest vitalsNotifier)
+  if (critical.isNotEmpty) {
+    criticalVitalsNotifier.value = critical;
+  }
+
   for (final fn in List.of(alertListeners)) {
     fn(hr, temp, spo2);
   }
