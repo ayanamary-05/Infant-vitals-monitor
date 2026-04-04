@@ -1,7 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/auth_wrapper.dart';
+
+// ─────────────────────────────────────────────
+//  Global Notification Plugin
+// ─────────────────────────────────────────────
+final FlutterLocalNotificationsPlugin localNotificationsPlugin = 
+    FlutterLocalNotificationsPlugin();
+
+const AndroidNotificationChannel kCriticalChannel = AndroidNotificationChannel(
+  'critical_vitals_alarm',
+  'Infant Vitals Alarm',
+  description: 'Urgent alarms for out-of-range infant vital signs.',
+  importance: Importance.max,
+  playSound: true,
+  enableVibration: true,
+  showBadge: true,
+);
 
 // ─────────────────────────────────────────────
 //  Global notifiers
@@ -13,9 +31,7 @@ final refreshRateNotifier  = ValueNotifier<int>(3);                 // seconds
 final alertCountNotifier      = ValueNotifier<int>(0);                 // active alert count
 final criticalAlertNotifier   = ValueNotifier<bool>(false);            // true while full-screen alarm is shown
 
-// ─────────────────────────────────────────────
-//  Supported locales
-// ─────────────────────────────────────────────
+// ... existing locale map ...
 const Map<String, Locale> kSupportedLocales = {
   'English':              Locale('en'),
   'Swahili':              Locale('sw'),
@@ -34,9 +50,33 @@ final cloudBackupNotifier   = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Notifications
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: androidInit);
+  
+  await localNotificationsPlugin.initialize(
+    initSettings,
+    onDidReceiveNotificationResponse: (details) {
+      // When notification is tapped, show the internal modal
+      criticalAlertNotifier.value = true;
+    },
+  );
+
+  final androidPlugin = localNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  await androidPlugin?.createNotificationChannel(kCriticalChannel);
+  await androidPlugin?.requestNotificationsPermission();
+
+  // Request Overlay permission (Display over other apps)
+  if (await Permission.systemAlertWindow.isDenied) {
+    await Permission.systemAlertWindow.request();
+  }
+
   runApp(const MyApp());
 }
 

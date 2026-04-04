@@ -116,77 +116,83 @@ class _AlertsScreenState extends State<AlertsScreen> {
     setState(() {
       // ── Heart Rate ──────────────────────────
       String hrKey = '';
-      if (hr > _thresholds.hrMax * 1.06 || hr < _thresholds.hrMin * 0.94) {
-        hrKey = 'critical';
-      } else if (hr > _thresholds.hrMax || hr < _thresholds.hrMin) {
-        hrKey = 'warning';
-      }
+      if (hr > 0) {
+        if (hr > _thresholds.hrMax * 1.06 || hr < _thresholds.hrMin * 0.94) {
+          hrKey = 'critical';
+        } else if (hr > _thresholds.hrMax || hr < _thresholds.hrMin) {
+          hrKey = 'warning';
+        }
 
-      if (hrKey.isNotEmpty && hrKey != _lastHrAlertKey) {
-        _lastHrAlertKey = hrKey;
-        _lastAlertTime = DateTime.now();
-        final threshold = hrKey == 'critical'
-            ? '${AppStrings.t('hr_max')} > ${(_thresholds.hrMax * 1.06).toStringAsFixed(0)} BPM'
-            : '${AppStrings.t('hr_max')} > ${_thresholds.hrMax.toStringAsFixed(0)} BPM';
-        _active.insert(0, VitalAlert(
-          id: 'alert_${_alertIdCounter++}',
-          vitalName: AppStrings.t('heart_rate'),
-          value: '${hr.toStringAsFixed(0)} BPM',
-          severity: hrKey == 'critical' ? AlertSeverity.critical : AlertSeverity.warning,
-          triggeredAt: DateTime.now(),
-          thresholdLabel: threshold,
-        ));
-      } else if (hrKey.isEmpty) {
-        _lastHrAlertKey = null;
+        if (hrKey.isNotEmpty && hrKey != _lastHrAlertKey) {
+          _lastHrAlertKey = hrKey;
+          _lastAlertTime = DateTime.now();
+          final threshold = hrKey == 'critical'
+              ? '${AppStrings.t('hr_max')} > ${(_thresholds.hrMax * 1.06).toStringAsFixed(0)} BPM'
+              : '${AppStrings.t('hr_max')} > ${_thresholds.hrMax.toStringAsFixed(0)} BPM';
+          _active.insert(0, VitalAlert(
+            id: 'alert_${_alertIdCounter++}',
+            vitalName: AppStrings.t('heart_rate'),
+            value: '${hr.toStringAsFixed(0)} BPM',
+            severity: hrKey == 'critical' ? AlertSeverity.critical : AlertSeverity.warning,
+            triggeredAt: DateTime.now(),
+            thresholdLabel: threshold,
+          ));
+        } else if (hrKey.isEmpty) {
+          _lastHrAlertKey = null;
+        }
       }
 
       // ── Temperature ─────────────────────────
       String tempKey = '';
-      if (displayTemp > criticalTempThreshold) {
-        tempKey = 'critical';
-      } else if (displayTemp > _thresholds.tempMax) {
-        tempKey = 'warning';
-      }
+      if (temp > 0) {
+        if (displayTemp > criticalTempThreshold) {
+          tempKey = 'critical';
+        } else if (displayTemp > _thresholds.tempMax) {
+          tempKey = 'warning';
+        }
 
-      if (tempKey.isNotEmpty && tempKey != _lastTempAlertKey) {
-        _lastTempAlertKey = tempKey;
-        _lastAlertTime = DateTime.now();
-        final thr = isFahrenheit
-            ? '${_thresholds.tempMax * 9 / 5 + 32} °F'
-            : '${_thresholds.tempMax} °C';
-        _active.insert(0, VitalAlert(
-          id: 'alert_${_alertIdCounter++}',
-          vitalName: AppStrings.t('body_temperature'),
-          value: '${displayTemp.toStringAsFixed(1)}$tempUnit',
-          severity: tempKey == 'critical' ? AlertSeverity.critical : AlertSeverity.warning,
-          triggeredAt: DateTime.now(),
-          thresholdLabel: '${AppStrings.t('temp_max')} > $thr',
-        ));
-      } else if (tempKey.isEmpty) {
-        _lastTempAlertKey = null;
+        if (tempKey.isNotEmpty && tempKey != _lastTempAlertKey) {
+          _lastTempAlertKey = tempKey;
+          _lastAlertTime = DateTime.now();
+          final thr = isFahrenheit
+              ? '${_thresholds.tempMax * 9 / 5 + 32} °F'
+              : '${_thresholds.tempMax} °C';
+          _active.insert(0, VitalAlert(
+            id: 'alert_${_alertIdCounter++}',
+            vitalName: AppStrings.t('body_temperature'),
+            value: '${displayTemp.toStringAsFixed(1)}$tempUnit',
+            severity: tempKey == 'critical' ? AlertSeverity.critical : AlertSeverity.warning,
+            triggeredAt: DateTime.now(),
+            thresholdLabel: '${AppStrings.t('temp_max')} > $thr',
+          ));
+        } else if (tempKey.isEmpty) {
+          _lastTempAlertKey = null;
+        }
       }
 
       // ── SpO2 ────────────────────────────────
       String spo2Key = '';
-      if (spo2 < _thresholds.spo2Min - 5) {
-        spo2Key = 'critical';
-      } else if (spo2 < _thresholds.spo2Min) {
-        spo2Key = 'warning';
-      }
+      if (spo2 > 0) {
+        if (spo2 < _thresholds.spo2Min - 5) {
+          spo2Key = 'critical';
+        } else if (spo2 < _thresholds.spo2Min) {
+          spo2Key = 'warning';
+        }
 
-      if (spo2Key.isNotEmpty && spo2Key != _lastSpo2AlertKey) {
-        _lastSpo2AlertKey = spo2Key;
-        _lastAlertTime = DateTime.now();
-        _active.insert(0, VitalAlert(
-          id: 'alert_${_alertIdCounter++}',
-          vitalName: AppStrings.t('oxygen_saturation'),
-          value: '${spo2.toStringAsFixed(0)}%',
-          severity: spo2Key == 'critical' ? AlertSeverity.critical : AlertSeverity.warning,
-          triggeredAt: DateTime.now(),
-          thresholdLabel: '${AppStrings.t('spo2_min')} < ${_thresholds.spo2Min.toStringAsFixed(0)}%',
-        ));
-      } else if (spo2Key.isEmpty) {
-        _lastSpo2AlertKey = null;
+        if (spo2Key.isNotEmpty && spo2Key != _lastSpo2AlertKey) {
+          _lastSpo2AlertKey = spo2Key;
+          _lastAlertTime = DateTime.now();
+          _active.insert(0, VitalAlert(
+            id: 'alert_${_alertIdCounter++}',
+            vitalName: AppStrings.t('oxygen_saturation'),
+            value: '${spo2.toStringAsFixed(0)}%',
+            severity: spo2Key == 'critical' ? AlertSeverity.critical : AlertSeverity.warning,
+            triggeredAt: DateTime.now(),
+            thresholdLabel: '${AppStrings.t('spo2_min')} < ${_thresholds.spo2Min.toStringAsFixed(0)}%',
+          ));
+        } else if (spo2Key.isEmpty) {
+          _lastSpo2AlertKey = null;
+        }
       }
     });
   }

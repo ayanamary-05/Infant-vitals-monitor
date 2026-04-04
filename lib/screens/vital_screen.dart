@@ -11,7 +11,7 @@ class VitalsScreen extends StatefulWidget {
 }
 
 class _VitalsScreenState extends State<VitalsScreen> {
-  final _vitalsRef = FirebaseDatabase.instance.ref('vitals/latest');
+  final _vitalsRef = FirebaseDatabase.instance.ref('vitals/current');
   final _alertRef  = FirebaseDatabase.instance.ref('alerts');
   final _historyRef = FirebaseDatabase.instance.ref('vitals/history');
 
