@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:first_app/main.dart' show alertCountNotifier, criticalAlertNotifier, localNotificationsPlugin, kCriticalChannel;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -43,7 +43,10 @@ StreamSubscription<DatabaseEvent>? _vitalsSubscription;
 void startVitalsListener(int intervalSeconds) {
   _vitalsSubscription?.cancel();
 
-  final vitalsRef = FirebaseDatabase.instance.ref('vitals/current');
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return;
+
+  final vitalsRef = FirebaseDatabase.instance.ref('vitals/infants/$uid/current');
 
   _vitalsSubscription = vitalsRef.onValue.listen(
     (event) {
@@ -116,11 +119,14 @@ void _checkAlerts(double hr, double temp, double spo2) {
 }
 
 void _logAlertToFirebase(String vitalNames) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) return;
+  
   final ref = FirebaseDatabase.instance.ref();
   final timestamp = ServerValue.timestamp;
   
-  // Push to alerts history
-  await ref.child('alerts').push().set({
+  // Push to user-specific alerts history
+  await ref.child('users/$uid/alerts').push().set({
     'type': 'Critical Threshold',
     'message': 'Alert triggered for: $vitalNames',
     'severity': 'critical',

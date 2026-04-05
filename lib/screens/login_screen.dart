@@ -212,8 +212,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final uid = credential.user!.uid;
       await credential.user?.updateDisplayName('$firstName $lastName');
 
-      // Write role, name, email to Firebase Realtime Database
-      await FirebaseDatabase.instance.ref('users/$uid').set({
+      // Write profile to isolated sub-key
+      await FirebaseDatabase.instance.ref('users/$uid/profile').set({
         'role': _selectedRole,
         'name': '$firstName $lastName',
         'email': email,
@@ -636,9 +636,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
         password: password,
       );
 
-      // Fetch user data from Firebase Realtime Database
+      // Fetch user profile from the nested sub-key
       final uid = credential.user!.uid;
-      final snap = await FirebaseDatabase.instance.ref('users/$uid').get();
+      final snap = await FirebaseDatabase.instance.ref('users/$uid/profile').get();
       final userData = Map<String, dynamic>.from(snap.value as Map? ?? {});
       
       final role = userData['role']?.toString() ?? 'Parent';
