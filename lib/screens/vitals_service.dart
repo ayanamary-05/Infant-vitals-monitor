@@ -50,9 +50,6 @@ void startVitalsListener(int intervalSeconds) {
 
   _vitalsSubscription = vitalsRef.onValue.listen(
     (event) {
-      // Pause updates while the critical alert overlay is visible
-      if (criticalAlertNotifier.value) return;
-
       final raw = event.snapshot.value;
       if (raw == null) {
         debugPrint('[VitalsService] vitals/current is null — no sensor data yet');
