@@ -212,8 +212,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final uid = credential.user!.uid;
       await credential.user?.updateDisplayName('$firstName $lastName');
 
-      // Write profile to isolated sub-key
-      await FirebaseDatabase.instance.ref('users/$uid/profile').set({
+      // Write role, name, email to Firebase Realtime Database
+      await FirebaseDatabase.instance.ref('users/$uid').set({
         'role': _selectedRole,
         'name': '$firstName $lastName',
         'email': email,
@@ -245,7 +245,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _showSnackBar(_authErrorMessage(e));
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('Something went wrong. Please try again.');
+      _showSnackBar('Error detail: ' + e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -636,9 +636,9 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
         password: password,
       );
 
-      // Fetch user profile from the nested sub-key
+      // Fetch user data from Firebase Realtime Database
       final uid = credential.user!.uid;
-      final snap = await FirebaseDatabase.instance.ref('users/$uid/profile').get();
+      final snap = await FirebaseDatabase.instance.ref('users/$uid').get();
       final userData = Map<String, dynamic>.from(snap.value as Map? ?? {});
       
       final role = userData['role']?.toString() ?? 'Parent';
@@ -674,7 +674,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
       _showSnackBar(_authErrorMessage(e));
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('Something went wrong. Please try again.');
+      _showSnackBar('Error detail: ' + e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

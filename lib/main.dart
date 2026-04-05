@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 import 'screens/auth_wrapper.dart';
-
 // ─────────────────────────────────────────────
 //  Global Notification Plugin
 // ─────────────────────────────────────────────
+
 final FlutterLocalNotificationsPlugin localNotificationsPlugin = 
     FlutterLocalNotificationsPlugin();
 
@@ -54,6 +55,16 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // App Check for Physical Device
+  try {
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.playIntegrity,
+    );
+    debugPrint("App Check: Activated successfully");
+  } catch (e) {
+    debugPrint("App Check: Activation failed: $e");
+  }
 
   // Initialize Notifications
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');

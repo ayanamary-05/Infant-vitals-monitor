@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:first_app/screens/theme_ext.dart';
 import 'package:path_provider/path_provider.dart';
@@ -193,6 +192,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   bool _isExporting = false;
 
   // ── Firebase history data ──────────────────────────────────────────────────
+  final _historyRef = FirebaseDatabase.instance.ref('vitals/history');
   StreamSubscription<DatabaseEvent>? _historySub;
 
   // Raw lists keyed by TimeRange
@@ -210,11 +210,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void _rebuild() { if (mounted) setState(() {}); }
 
   void _subscribeHistory() {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    
-    final historyRef = FirebaseDatabase.instance.ref('vitals/infants/$uid/history');
-    _historySub = historyRef.limitToLast(30).onValue.listen((event) {
+    _historySub = _historyRef.limitToLast(30).onValue.listen((event) {
       if (!mounted || event.snapshot.value == null) return;
       final map = Map<String, dynamic>.from(event.snapshot.value as Map);
       final entries = map.entries.toList();

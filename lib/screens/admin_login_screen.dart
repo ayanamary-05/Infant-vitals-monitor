@@ -55,7 +55,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       );
 
       final uid = credential.user!.uid;
-      final snap = await FirebaseDatabase.instance.ref('users/$uid/profile/role').get();
+      final snap = await FirebaseDatabase.instance.ref('users/$uid/role').get();
       final role = (snap.value as String?)?.toLowerCase();
 
       if (role == 'admin') {
