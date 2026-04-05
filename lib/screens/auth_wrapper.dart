@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_app/screens/login_screen.dart';
 import 'package:first_app/screens/home_screen.dart';
+import 'package:first_app/screens/admin_dashboard.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -27,10 +29,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     if (rememberMe && currentUser != null) {
       // "Remember me" was checked and Firebase session is still alive — go straight in
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      // Fetch role to ensure correct dashboard
+      final snap = await FirebaseDatabase.instance.ref('users/${currentUser.uid}/role').get();
+      final role = (snap.value as String?)?.toLowerCase() ?? 'parent';
+      
+      if (!mounted) return;
+
+      if (role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } else {
       // Either remember me was off, or no active session — sign out cleanly
       if (currentUser != null) {

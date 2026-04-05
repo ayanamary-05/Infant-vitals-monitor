@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:first_app/main.dart' show alertCountNotifier, criticalAlertNotifier;
 
 // ── Simulated vitals state ──────────────────────────────────────────────────
@@ -73,7 +74,33 @@ void _checkAlerts(double hr, double temp, double spo2) {
     criticalVitalsNotifier.value = critical;
   }
 
+  // Log to database for admin analytics
+  if (critical.isNotEmpty) {
+    _logAlertToFirebase(critical.join(', '));
+  }
+
   for (final fn in List.of(alertListeners)) {
     fn(hr, temp, spo2);
   }
+}
+
+void _logAlertToFirebase(String vitalNames) async {
+  final ref = FirebaseDatabase.instance.ref();
+  final timestamp = ServerValue.timestamp;
+  
+  // Push to alerts history
+  await ref.child('alerts').push().set({
+    'type': 'Critical Threshold',
+    'message': 'Alert triggered for: $vitalNames',
+    'severity': 'critical',
+    'timestamp': timestamp,
+    'status': 'active',
+  });
+
+  // Push to general activity log
+  await ref.child('history').push().set({
+    'type': 'alert',
+    'message': 'CRITICAL ALERT: $vitalNames threshold exceeded',
+    'timestamp': timestamp,
+  });
 }

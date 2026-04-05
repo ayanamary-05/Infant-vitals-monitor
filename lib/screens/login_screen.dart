@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:first_app/screens/home_screen.dart';
+import 'package:first_app/screens/admin_login_screen.dart';
+import 'package:first_app/screens/admin_dashboard.dart';
 
 // ─────────────────────────────────────────
 // LOGIN SCREEN  (landing — shows LOGIN / SIGN UP buttons)
@@ -52,12 +54,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ClipOval(
-                        child: Image.asset(
-                          "assets/images/logo.png",
-                          height: 74,
-                          width: 74,
-                          fit: BoxFit.cover,
+                      GestureDetector(
+                        onLongPress: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                          );
+                        },
+                        child: ClipOval(
+                          child: Image.asset(
+                            "assets/images/logo.png",
+                            height: 74,
+                            width: 74,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -84,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const Spacer(),
-                  _PillButton(
+                  PillButton(
                     label: "LOGIN",
                     backgroundColor: const Color(0xFF1DB954),
                     foregroundColor: Colors.white,
@@ -94,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _PillButton(
+                  PillButton(
                     label: "SIGN UP",
                     backgroundColor: Colors.white.withValues(alpha: 0.12),
                     foregroundColor: Colors.white,
@@ -209,6 +219,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'email': email,
       });
 
+      // Log signup event for admin analytics
+      await FirebaseDatabase.instance.ref('history').push().set({
+        'type': 'signup',
+        'message': '$firstName $lastName ($email) signed up as $_selectedRole',
+        'timestamp': ServerValue.timestamp,
+      });
+
       // Cache role locally for fast access
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_role', _selectedRole);
@@ -316,13 +333,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _RolePill(
+                              RolePill(
                                 label: "Parent",
                                 isSelected: _selectedRole == 'Parent',
                                 onTap: () => setState(() => _selectedRole = 'Parent'),
                               ),
                               const SizedBox(width: 16),
-                              _RolePill(
+                              RolePill(
                                 label: "Caregiver",
                                 isSelected: _selectedRole == 'Caregiver',
                                 onTap: () => setState(() => _selectedRole = 'Caregiver'),
@@ -330,7 +347,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ],
                           ),
                           const SizedBox(height: 24),
-                          _GlassTextField(
+                          GlassTextField(
                             hintText: "first name",
                             controller: _firstNameController,
                             keyboardType: TextInputType.name,
@@ -338,7 +355,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: 16),
-                          _GlassTextField(
+                          GlassTextField(
                             hintText: "last name",
                             controller: _lastNameController,
                             keyboardType: TextInputType.name,
@@ -346,14 +363,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: 16),
-                          _GlassTextField(
+                          GlassTextField(
                             hintText: "email address",
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: 16),
-                          _GlassTextField(
+                          GlassTextField(
                             hintText: "password",
                             controller: _passwordController,
                             obscureText: _passwordObscured,
@@ -371,7 +388,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _GlassTextField(
+                          GlassTextField(
                             hintText: "confirm password",
                             controller: _confirmPasswordController,
                             obscureText: _confirmPasswordObscured,
@@ -391,7 +408,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                           ),
                           const SizedBox(height: 32),
-                          _PillButton(
+                          PillButton(
                             label: _isLoading ? "CREATING..." : "CREATE ACCOUNT",
                             backgroundColor: const Color(0xFF1DB954),
                             foregroundColor: Colors.white,
@@ -450,7 +467,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 // ─────────────────────────────────────────
 // SHARED WIDGETS
 // ─────────────────────────────────────────
-class _PillButton extends StatelessWidget {
+class PillButton extends StatelessWidget {
   final String label;
   final Color backgroundColor;
   final Color foregroundColor;
@@ -458,7 +475,7 @@ class _PillButton extends StatelessWidget {
   final VoidCallback onPressed;
   final double? width;
 
-  const _PillButton({
+  const PillButton({
     required this.label,
     required this.backgroundColor,
     required this.foregroundColor,
@@ -498,7 +515,7 @@ class _PillButton extends StatelessWidget {
   }
 }
 
-class _GlassTextField extends StatelessWidget {
+class GlassTextField extends StatelessWidget {
   final String hintText;
   final bool obscureText;
   final TextEditingController? controller;
@@ -509,7 +526,7 @@ class _GlassTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final String? errorText;
 
-  const _GlassTextField({
+  const GlassTextField({
     required this.hintText,
     this.obscureText = false,
     this.controller,
@@ -619,22 +636,39 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
         password: password,
       );
 
-      // Fetch role from Firebase Realtime Database
+      // Fetch user data from Firebase Realtime Database
       final uid = credential.user!.uid;
-      final snap = await FirebaseDatabase.instance.ref('users/$uid/role').get();
-      final role = (snap.value as String?) ?? 'Parent';
+      final snap = await FirebaseDatabase.instance.ref('users/$uid').get();
+      final userData = Map<String, dynamic>.from(snap.value as Map? ?? {});
+      
+      final role = userData['role']?.toString() ?? 'Parent';
+      final name = userData['name']?.toString() ?? credential.user?.email ?? 'User';
 
       // Cache locally for fast access throughout the session
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('remember_me', _rememberMe);
       await prefs.setString('user_role', role);
 
+      // Log login event for admin analytics
+      await FirebaseDatabase.instance.ref('history').push().set({
+        'type': 'login',
+        'message': '$name logged in',
+        'timestamp': ServerValue.timestamp,
+      });
+
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      if (role.toLowerCase() == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       _showSnackBar(_authErrorMessage(e));
@@ -740,14 +774,14 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ),
                         ),
                         const SizedBox(height: 36),
-                        _GlassTextField(
+                        GlassTextField(
                           hintText: "email address",
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
                         ),
                         const SizedBox(height: 16),
-                        _GlassTextField(
+                        GlassTextField(
                           hintText: "password",
                           controller: _passwordController,
                           obscureText: _passwordObscured,
@@ -807,7 +841,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           ],
                         ),
                         const SizedBox(height: 32),
-                        _PillButton(
+                        PillButton(
                           label: _isLoading ? "LOGGING IN..." : "LOGIN",
                           backgroundColor: const Color(0xFF1DB954),
                           foregroundColor: Colors.white,
@@ -861,11 +895,11 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
     );
   }
 }
-class _RolePill extends StatelessWidget {
+class RolePill extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
-  const _RolePill({required this.label, required this.isSelected, required this.onTap});
+  const RolePill({required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
