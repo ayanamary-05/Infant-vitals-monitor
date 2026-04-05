@@ -24,6 +24,7 @@ dependencies:
 
   # Local notifications for alerts
   flutter_local_notifications: ^18.0.1
+  permission_handler: ^11.3.1
 
   # Time formatting
   intl: ^0.20.2

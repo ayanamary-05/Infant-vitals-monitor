@@ -35,7 +35,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
-
   late final List<Widget> _tabs;
 
   @override
@@ -48,18 +47,49 @@ class _HomeScreenState extends State<HomeScreen> {
       ProfileScreen(),
       SettingsScreen(),
     ];
-    startVitalsSimulation(refreshRateNotifier.value);
+    startVitalsListener(refreshRateNotifier.value);
     refreshRateNotifier.addListener(_onRefreshRateChanged);
     criticalVitalsNotifier.addListener(_onCriticalVitals);
+    // Listen for the "Full Screen Alarm" state to trigger the Dialog Window
+    criticalAlertNotifier.addListener(_onCriticalAlertToggle);
   }
 
-  void _onRefreshRateChanged() {
-    startVitalsSimulation(refreshRateNotifier.value);
+  bool _isAlarmShowing = false;
+
+  void _onCriticalAlertToggle() {
+    if (criticalAlertNotifier.value && !_isAlarmShowing) {
+      _showAlarmDialog();
+    }
   }
+
+  void _showAlarmDialog() {
+    _isAlarmShowing = true;
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.8),
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (context, anim1, anim2) => const CriticalAlertOverlay(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        return FadeTransition(
+          opacity: anim1,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+              CurvedAnimation(parent: anim1, curve: Curves.easeOutCubic),
+            ),
+            child: child,
+          ),
+        );
+      },
+    ).then((_) {
+      _isAlarmShowing = false;
+    });
+  }
+
+  void _onRefreshRateChanged() => startVitalsListener(refreshRateNotifier.value);
 
   void _onCriticalVitals() {
-    if (criticalVitalsNotifier.value.isNotEmpty &&
-        !criticalAlertNotifier.value) {
+    if (criticalVitalsNotifier.value.isNotEmpty && !criticalAlertNotifier.value) {
       criticalAlertNotifier.value = true;
     }
   }
@@ -68,27 +98,27 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     refreshRateNotifier.removeListener(_onRefreshRateChanged);
     criticalVitalsNotifier.removeListener(_onCriticalVitals);
-    stopVitalsSimulation();
+    criticalAlertNotifier.removeListener(_onCriticalAlertToggle);
+    stopVitalsListener();
     super.dispose();
   }
 
   void _showSos() {
-    // Show toast then immediately launch phone dialler
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
             Icon(Icons.call_rounded, color: Colors.white, size: 18),
             SizedBox(width: 10),
-            Text('Calling John Doe…',
-                style: TextStyle(color: context.textMain, fontWeight: FontWeight.w600)),
+            Text('Calling Response Team…',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
           ],
         ),
         backgroundColor: kRed,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: EdgeInsets.all(16),
+        margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -97,65 +127,57 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<String>(
-      valueListenable: languageNotifier.select((l) => l.languageCode),
-      builder: (context, languageCode, child) => Scaffold(
-        backgroundColor: context.bg,
-        body: Stack(
-          children: [
-            IndexedStack(index: _tab, children: _tabs),
-            // ── SOS Button (always visible) ─────────────────
-            Positioned(
-              right: 16,
-              bottom: 80,
-              child: GestureDetector(
-                onTap: _showSos,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: kRed,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: kRed.withValues(alpha: 0.5),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      AppStrings.t('sos'),
-                      style: TextStyle(
-                        color: context.textMain, fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
+    return ValueListenableBuilder<Locale>(
+      valueListenable: languageNotifier,
+      builder: (context, locale, child) {
+        return Scaffold(
+          backgroundColor: context.bg,
+          body: Stack(
+            children: [
+              IndexedStack(index: _tab, children: _tabs),
+              // ── Floating SOS Button ─────────────────
+              Positioned(
+                right: 16,
+                bottom: 80,
+                child: GestureDetector(
+                  onTap: _showSos,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: kRed,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: kRed.withValues(alpha: 0.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        AppStrings.t('sos'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            // ── Critical Alert Overlay ──────────────────────
-            ValueListenableBuilder<bool>(
-              valueListenable: criticalAlertNotifier,
-              builder: (context, isActive, child) {
-                if (!isActive) return const SizedBox.shrink();
-                return const Positioned.fill(
-                  child: CriticalAlertOverlay(),
-                );
-              },
-            ),
-          ],
-        ),
-        bottomNavigationBar: _BottomNav(
-          current: _tab,
-          onTap: (i) => setState(() => _tab = i),
-        ),
-      ),
+            ],
+          ),
+          bottomNavigationBar: _BottomNav(
+            current: _tab,
+            onTap: (i) => setState(() => _tab = i),
+          ),
+        );
+      },
     );
   }
 }
@@ -242,20 +264,29 @@ class _DashboardTabState extends State<_DashboardTab>
 
   int _healthScore(VitalsState v) {
     int score = 100;
-    if (v.hr > 160 || v.hr < 100) {
-      score -= 20;
-    } else if (v.hr > 150 || v.hr < 110) {
-      score -= 5;
+    // Heart Rate
+    if (v.hr > 0) {
+      if (v.hr > 160 || v.hr < 100) {
+        score -= 20;
+      } else if (v.hr > 150 || v.hr < 110) {
+        score -= 5;
+      }
     }
-    if (v.temp > 38.5) {
-      score -= 20;
-    } else if (v.temp > 38.0) {
-      score -= 10;
+    // Temperature
+    if (v.temp > 0) {
+      if (v.temp > 38.5) {
+        score -= 20;
+      } else if (v.temp > 38.0) {
+        score -= 10;
+      }
     }
-    if (v.spo2 < 89) {
-      score -= 30;
-    } else if (v.spo2 < 94) {
-      score -= 15;
+    // SpO2
+    if (v.spo2 > 0) {
+      if (v.spo2 < 89) {
+        score -= 30;
+      } else if (v.spo2 < 94) {
+        score -= 15;
+      }
     }
     return score.clamp(0, 100);
   }
@@ -472,12 +503,12 @@ class _DashboardTabState extends State<_DashboardTab>
                 _DashboardVitalCard(
                   label: AppStrings.t('heart_rate'),
                   normalRange: '${AppStrings.t('normal')}: 100 – 160 BPM',
-                  value: v.hr.toStringAsFixed(0),
+                  value: v.hr == 0.0 ? '--' : v.hr.toStringAsFixed(0),
                   unit: 'BPM',
                   icon: Icons.favorite_rounded,
                   color: kRed,
                   trend: hrTrend,
-                  lastUpdated: _formatTime(v.lastUpdated),
+                  lastUpdated: v.hr == 0.0 ? '--' : _formatTime(v.lastUpdated),
                   isRefreshing: _isRefreshing,
                   pulseController: _pulseController,
                   showPulse: true,
@@ -488,12 +519,12 @@ class _DashboardTabState extends State<_DashboardTab>
                 _DashboardVitalCard(
                   label: AppStrings.t('body_temperature'),
                   normalRange: '${AppStrings.t('normal')}: $normalRangeTemp',
-                  value: tempStr,
+                  value: v.temp == 0.0 ? '--' : tempStr,
                   unit: tempUnitLabel,
                   icon: Icons.thermostat_rounded,
                   color: kOrange,
                   trend: tempTrend,
-                  lastUpdated: _formatTime(v.lastUpdated),
+                  lastUpdated: v.temp == 0.0 ? '--' : _formatTime(v.lastUpdated),
                   isRefreshing: _isRefreshing,
                   pulseController: _pulseController,
                 ),
@@ -503,12 +534,12 @@ class _DashboardTabState extends State<_DashboardTab>
                 _DashboardVitalCard(
                   label: AppStrings.t('oxygen_saturation'),
                   normalRange: '${AppStrings.t('normal')}: 94 – 100 %',
-                  value: v.spo2.toStringAsFixed(0),
+                  value: v.spo2 == 0.0 ? '--' : v.spo2.toStringAsFixed(0),
                   unit: '%',
                   icon: Icons.air_rounded,
                   color: kBlue,
                   trend: spo2Trend,
-                  lastUpdated: _formatTime(v.lastUpdated),
+                  lastUpdated: v.spo2 == 0.0 ? '--' : _formatTime(v.lastUpdated),
                   isRefreshing: _isRefreshing,
                   pulseController: _pulseController,
                 ),

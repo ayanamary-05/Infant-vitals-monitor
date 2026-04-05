@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:first_app/screens/theme_ext.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -189,16 +191,64 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final List<_Annotation> _annotations = [];
   bool _isExporting = false;
 
+  // ── Firebase history data ──────────────────────────────────────────────────
+  final _historyRef = FirebaseDatabase.instance.ref('vitals/history');
+  StreamSubscription<DatabaseEvent>? _historySub;
+
+  // Raw lists keyed by TimeRange
+  final Map<TimeRange, List<double>> _hrData   = {};
+  final Map<TimeRange, List<double>> _tempData  = {};
+  final Map<TimeRange, List<double>> _spo2Data  = {};
+
   @override
   void initState() {
     super.initState();
     languageNotifier.addListener(_rebuild);
+    _subscribeHistory();
   }
 
   void _rebuild() { if (mounted) setState(() {}); }
 
+  void _subscribeHistory() {
+    _historySub = _historyRef.limitToLast(30).onValue.listen((event) {
+      if (!mounted || event.snapshot.value == null) return;
+      final map = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final entries = map.entries.toList();
+
+      final List<double> hrs = [], temps = [], spo2s = [];
+      for (final entry in entries) {
+        final v = Map<String, dynamic>.from(entry.value as Map);
+        hrs.add(double.tryParse(v['heartRate'].toString()) ?? 0);
+        temps.add(double.tryParse(v['temperature'].toString()) ?? 0);
+        spo2s.add(double.tryParse(v['spo2'].toString()) ?? 0);
+      }
+
+      // Trim / pad to match the selected TimeRange point counts
+      setState(() {
+        for (final range in TimeRange.values) {
+          _hrData[range]   = _trimOrPad(hrs,   range.points, _vitalDefs[0]);
+          _tempData[range] = _trimOrPad(temps, range.points, _vitalDefs[1]);
+          _spo2Data[range] = _trimOrPad(spo2s, range.points, _vitalDefs[2]);
+        }
+      });
+    });
+  }
+
+  /// Returns the last [count] items from [raw], padding with the vital's
+  /// midpoint value when there are fewer real entries than [count].
+  List<double> _trimOrPad(List<double> raw, int count, _VitalDef def) {
+    if (raw.isEmpty) {
+      final mid = (def.minY + def.maxY) / 2;
+      return List.filled(count, mid);
+    }
+    if (raw.length >= count) return raw.sublist(raw.length - count);
+    // Pad the beginning with the first real value
+    return [...List.filled(count - raw.length, raw.first), ...raw];
+  }
+
   @override
   void dispose() {
+    _historySub?.cancel();
     languageNotifier.removeListener(_rebuild);
     super.dispose();
   }
@@ -304,21 +354,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // Generate simulated demo data based on vital + time range
-  List<double> _generateData(int vitalIndex, TimeRange range) {
-    final rng = math.Random(vitalIndex * 100 + range.index);
-    final def = _vitalDefs[vitalIndex];
-    final mid = (def.minY + def.maxY) / 2;
-    final spread = (def.maxY - def.minY) * 0.15;
-    return List.generate(range.points, (i) {
-      double v = mid + (rng.nextDouble() - 0.5) * 2 * spread;
-      // Add some realistic drift over time
-      v += math.sin(i * 0.3) * spread * 0.3;
-      return v.clamp(def.minY, def.maxY);
-    });
+  /// Returns the current chart data from Firebase for the selected vital + range.
+  List<double> get _data {
+    final map = _vitalIndex == 0 ? _hrData : _vitalIndex == 1 ? _tempData : _spo2Data;
+    return map[_timeRange] ?? [];
   }
-
-  List<double> get _data => _generateData(_vitalIndex, _timeRange);
 
   // stats computed in build from displayData so unit conversion is applied
 
@@ -349,13 +389,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
       builder: (context, tempUnit, child) {
         final isFahrenheit = tempUnit == 'Fahrenheit';
         final rawData = _data;
-        final displayData = rawData.map((v) =>
-            _def.displayValue(v, isFahrenheit)).toList();
+        final displayData = rawData.map((v) => _def.displayValue(v, isFahrenheit)).toList();
         final unitLabel = _def.unitLabel(isFahrenheit);
 
-        final displayMin = displayData.reduce(math.min);
-        final displayMax = displayData.reduce(math.max);
-        final displayAvg = displayData.reduce((a, b) => a + b) / displayData.length;
+        final isEmpty = displayData.isEmpty;
+        final displayMin = isEmpty ? 0.0 : displayData.reduce(math.min);
+        final displayMax = isEmpty ? 0.0 : displayData.reduce(math.max);
+        final displayAvg = isEmpty ? 0.0 : displayData.reduce((a, b) => a + b) / displayData.length;
 
         return Stack(
           children: [
@@ -473,28 +513,43 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       SizedBox(height: 12),
                       SizedBox(
                         height: 220,
-                        child: GestureDetector(
-                          onTapDown: (details) {
-                            final box = context.findRenderObject() as RenderBox?;
-                            if (box == null) return;
-                            // Calculate touched index from x position
-                            final localX = details.localPosition.dx;
-                            final chartWidth = box.size.width - 32; // approx
-                            if (chartWidth <= 0) return;
-                            final idx = ((localX / chartWidth) * (displayData.length - 1))
-                                .round().clamp(0, displayData.length - 1);
-                            setState(() => _touchedIndex = idx);
-                          },
-                          child: _LineChart(
-                            data: displayData,
-                            color: _def.color,
-                            touchedIndex: _touchedIndex,
-                            annotations: _annotations,
-                            unitLabel: unitLabel,
-                            decimals: _dp,
-                            timeRange: _timeRange,
-                          ),
-                        ),
+                        child: isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.query_stats_rounded, color: Colors.white24, size: 40),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      'No data found for this period.\nWaiting for sensor updates...',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white38, fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : GestureDetector(
+                                onTapDown: (details) {
+                                  final box = context.findRenderObject() as RenderBox?;
+                                  if (box == null) return;
+                                  final localX = details.localPosition.dx;
+                                  final chartWidth = box.size.width - 32;
+                                  if (chartWidth <= 0) return;
+                                  final idx = ((localX / chartWidth) * (displayData.length - 1))
+                                      .round()
+                                      .clamp(0, displayData.length - 1);
+                                  setState(() => _touchedIndex = idx);
+                                },
+                                child: _LineChart(
+                                  data: displayData,
+                                  color: _def.color,
+                                  touchedIndex: _touchedIndex,
+                                  annotations: _annotations,
+                                  unitLabel: unitLabel,
+                                  decimals: _dp,
+                                  timeRange: _timeRange,
+                                ),
+                              ),
                       ),
                       // Touched point info
                       if (_touchedIndex != null)

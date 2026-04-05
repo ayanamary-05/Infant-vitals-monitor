@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:ui' show ImageFilter;
 
-import 'package:first_app/main.dart' show criticalAlertNotifier;
+import 'package:first_app/main.dart' show criticalAlertNotifier, localNotificationsPlugin;
 import 'package:first_app/screens/vitals_service.dart'
     show vitalsNotifier, criticalVitalsNotifier, VitalsState;
 
@@ -224,15 +224,20 @@ class _CriticalAlertOverlayState extends State<CriticalAlertOverlay>
 
   void _dismiss() async {
     await _stopAudio();
+    // Cancel the system alarm notification
+    await localNotificationsPlugin.cancel(0);
     criticalAlertNotifier.value = false;
     // Clear notifier so a fresh alert can fire again next time
     criticalVitalsNotifier.value = [];
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _sos(BuildContext context) async {
     await _stopAudio();
+    await localNotificationsPlugin.cancel(0);
     criticalAlertNotifier.value = false;
     criticalVitalsNotifier.value = [];
+    if (context.mounted) Navigator.of(context).pop();
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
