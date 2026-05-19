@@ -21,36 +21,46 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _resolve() async {
-    final prefs = await SharedPreferences.getInstance();
-    final rememberMe = prefs.getBool('remember_me') ?? false;
-    final currentUser = FirebaseAuth.instance.currentUser;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final rememberMe = prefs.getBool('remember_me') ?? false;
+      final currentUser = FirebaseAuth.instance.currentUser;
 
-    if (!mounted) return;
-
-    if (rememberMe && currentUser != null) {
-      // "Remember me" was checked and Firebase session is still alive — go straight in
-      // Fetch role to ensure correct dashboard
-      final snap = await FirebaseDatabase.instance.ref('users/${currentUser.uid}/role').get();
-      final role = (snap.value as String?)?.toLowerCase() ?? 'parent';
-      
       if (!mounted) return;
 
-      if (role == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-        );
+      if (rememberMe && currentUser != null) {
+        final snap = await FirebaseDatabase.instance
+            .ref('users/${currentUser.uid}/role')
+            .get()
+            .timeout(const Duration(seconds: 10));
+
+        final role = (snap.value as String?)?.toLowerCase() ?? 'parent';
+
+        if (!mounted) return;
+
+        if (role == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
       } else {
+        if (currentUser != null) {
+          await FirebaseAuth.instance.signOut();
+        }
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       }
-    } else {
-      // Either remember me was off, or no active session — sign out cleanly
-      if (currentUser != null) {
-        await FirebaseAuth.instance.signOut();
-      }
+    } catch (e) {
+      debugPrint('AuthWrapper resolve error: $e');
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
@@ -61,12 +71,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    // Shown briefly while _resolve() runs
     return const Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color(0xFF0F172A),
       body: Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1DB954)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading...',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+            ),
+          ],
         ),
       ),
     );

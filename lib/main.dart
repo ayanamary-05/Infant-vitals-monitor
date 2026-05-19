@@ -51,39 +51,50 @@ final cloudBackupNotifier   = ValueNotifier<bool>(false);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  try {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+} catch (e) {
+  // Already initialized — safe to ignore
+  debugPrint('Firebase already initialized: $e');
+}
+
   // App Check for Physical Device
-  try {
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.playIntegrity,
-    );
-    debugPrint("App Check: Activated successfully");
-  } catch (e) {
-    debugPrint("App Check: Activation failed: $e");
-  }
+  // try {
+  //   await FirebaseAppCheck.instance.activate(
+  //     androidProvider: AndroidProvider.playIntegrity,
+  //   );
+  //   debugPrint("App Check: Activated successfully");
+  // } catch (e) {
+  //   debugPrint("App Check: Activation failed: $e");
+  // }
 
   // Initialize Notifications
-  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-  const initSettings = InitializationSettings(android: androidInit);
-  
+  const androidInit =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const initSettings =
+      InitializationSettings(android: androidInit);
+
   await localNotificationsPlugin.initialize(
     initSettings,
     onDidReceiveNotificationResponse: (details) {
-      // When notification is tapped, show the internal modal
       criticalAlertNotifier.value = true;
     },
   );
 
   final androidPlugin = localNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-  await androidPlugin?.createNotificationChannel(kCriticalChannel);
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+  await androidPlugin?.createNotificationChannel(
+      kCriticalChannel);
+
   await androidPlugin?.requestNotificationsPermission();
 
-  // Request Overlay permission (Display over other apps)
+  // Request Overlay permission
   if (await Permission.systemAlertWindow.isDenied) {
     await Permission.systemAlertWindow.request();
   }
